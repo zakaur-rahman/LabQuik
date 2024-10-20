@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Search, ChevronDown, ChevronUp, Printer, Eye, Edit2, Trash2 } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 
 interface Patient {
   id: string;
@@ -16,12 +17,14 @@ interface Patient {
   sampleCollector: string;
   collectionLocation: string;
 }
+
 const PatientList: React.FC = () => {
   const [patients, setPatients] = useState<Patient[]>([]);
-  const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
+  const [expandedRowId, setExpandedRowId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
   const [dateRange, setDateRange] = useState({ start: '', end: '' });
+  const expandedContentRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     // Fetch patients data here
@@ -42,21 +45,40 @@ const PatientList: React.FC = () => {
         sampleCollector: 'Zak',
         collectionLocation: 'Ejaz Labs'
       },
+      {
+        id: '241019002',
+        name: 'Arsalan Ahmad',
+        age: 12,
+        gender: 'Male',
+        referringDoctor: 'Moin Ahmad',
+        tests: ['Vitamin D3'],
+        amount: 30,
+        date: '2024-10-19 11:15 PM',
+        status: 'Ongoing',
+        contact: '9876543210',
+        createdBy: 'Arsalan',
+        sampleCollector: 'Zak',
+        collectionLocation: 'Ejaz Labs'
+      },
       // Add more mock patients here
     ]);
   }, []);
 
-  const toggleRowExpansion = (patientId: string) => {
-    setExpandedRows(prevState => {
-      const newState = new Set(prevState);
-      if (newState.has(patientId)) {
-        newState.delete(patientId);
-      } else {
-        newState.add(patientId);
-      }
-      return newState;
-    });
+  const toggleRowExpansion = (patientId: string, event: React.MouseEvent) => {
+    if ((event.target as HTMLElement).closest('button')) {
+      event.stopPropagation();
+      return;
+    }
+    setExpandedRowId(prevId => prevId === patientId ? null : patientId);
   };
+
+  useEffect(() => {
+    if (expandedContentRef.current) {
+      expandedContentRef.current.style.maxHeight = expandedRowId
+        ? `${expandedContentRef.current.scrollHeight}px`
+        : '0px';
+    }
+  }, [expandedRowId]);
 
   const filteredPatients = patients.filter(patient => 
     (patient.name.toLowerCase().includes(searchQuery.toLowerCase()) || patient.id.includes(searchQuery)) &&
@@ -111,7 +133,7 @@ const PatientList: React.FC = () => {
         <table className="w-full border-collapse">
           <thead>
             <tr className="bg-gray-100">
-              <th className="p-2 text-left"></th>
+              <th className="p-2 text-left w-8"></th>
               <th className="p-2 text-left">Patient ID</th>
               <th className="p-2 text-left">Patient Details</th>
               <th className="p-2 text-left">Rf. Doctor</th>
@@ -125,11 +147,16 @@ const PatientList: React.FC = () => {
           <tbody>
             {filteredPatients.map(patient => (
               <React.Fragment key={patient.id}>
-                <tr className="border-b">
-                  <td className="p-2">
-                    <button onClick={() => toggleRowExpansion(patient.id)}>
-                      {expandedRows.has(patient.id) ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
-                    </button>
+                <tr 
+                  className="border-b cursor-pointer hover:bg-gray-50 transition-all duration-300 ease-in-out"
+                  onClick={(e) => toggleRowExpansion(patient.id, e)}
+                >
+                  <td className="p-2 text-center">
+                    {expandedRowId === patient.id ? (
+                      <ChevronUp size={20} className="inline-block" />
+                    ) : (
+                      <ChevronDown size={20} className="inline-block" />
+                    )}
                   </td>
                   <td className="p-2">{patient.id}</td>
                   <td className="p-2">
@@ -148,39 +175,45 @@ const PatientList: React.FC = () => {
                     </span>
                   </td>
                   <td className="p-2 space-y-2">
-                    <button className="border border-blue-500 text-black px-4 py-1 rounded mr-2 w-40 lg:w-auto ">Bill</button>
+                    <button className="border border-blue-500 text-black px-4 py-1 rounded mr-2 w-40 lg:w-auto">Bill</button>
                     <button className="bg-blue-500 text-white px-4 py-1 rounded flex w-40 lg:w-auto items-center">
                       <Printer size={16} className="mr-1" /> Print Report
                     </button>
                   </td>
                 </tr>
-                {expandedRows.has(patient.id) && (
-                  <tr className="bg-gray-50">
-                    <td colSpan={9} className="p-4">
-                      <div className="grid grid-cols-2 gap-4">
-                        <div>
-                          <p><strong>Contact:</strong> {patient.contact}</p>
-                          <p><strong>Created By:</strong> {patient.createdBy}</p>
+                <tr className="bg-gray-50">
+                  <td colSpan={9} className="p-0">
+                    <div
+                      ref={expandedRowId === patient.id ? expandedContentRef : null}
+                      className="overflow-hidden transition-all duration-300 ease-in-out"
+                      style={{ maxHeight: expandedRowId === patient.id ? 'auto' : '0px' }}
+                    >
+                      <div className="p-4">
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <p><strong>Contact:</strong> {patient.contact}</p>
+                            <p><strong>Created By:</strong> {patient.createdBy}</p>
+                          </div>
+                          <div>
+                            <p><strong>Sample Collector:</strong> {patient.sampleCollector}</p>
+                            <p><strong>Collected at:</strong> {patient.collectionLocation}</p>
+                          </div>
                         </div>
-                        <div>
-                          <p><strong>Sample Collector:</strong> {patient.sampleCollector}</p>
-                          <p><strong>Collected at:</strong> {patient.collectionLocation}</p>
+                        <div className="mt-4 space-x-2">
+                          <button className="bg-gray-200 text-gray-800 px-4 py-1 rounded flex items-center">
+                            <Eye size={16} className="mr-1" /> View Details
+                          </button>
+                          <button className="bg-yellow-500 text-white px-4 py-1 rounded flex items-center">
+                            <Edit2 size={16} className="mr-1" /> Edit Patient
+                          </button>
+                          <button className="bg-red-500 text-white px-4 py-1 rounded flex items-center">
+                            <Trash2 size={16} className="mr-1" /> Delete
+                          </button>
                         </div>
                       </div>
-                      <div className="mt-4 space-x-2">
-                        <button className="bg-gray-200 text-gray-800 px-4 py-1 rounded flex items-center">
-                          <Eye size={16} className="mr-1" /> View Details
-                        </button>
-                        <button className="bg-yellow-500 text-white px-4 py-1 rounded flex items-center">
-                          <Edit2 size={16} className="mr-1" /> Edit Patient
-                        </button>
-                        <button className="bg-red-500 text-white px-4 py-1 rounded flex items-center">
-                          <Trash2 size={16} className="mr-1" /> Delete
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                )}
+                    </div>
+                  </td>
+                </tr>
               </React.Fragment>
             ))}
           </tbody>
