@@ -5,23 +5,35 @@ import SideBar from "../components/admin/sidebar/SideBar";
 import PatientRegister from "../components/patient/PatientRegister";
 import PatientList from "../components/patient/PatientList";
 import PatientReport from "../components/patient/PatientReport";
+import PatientDetails from "../components/patient/PatientDetails";
 import Header from "../components/header/Header";
+import { useRouter, useSearchParams } from 'next/navigation';
 
 const Page = () => {
   const [collapsed, setCollapsed] = useState(false);
   const [activeComponent, setActiveComponent] = useState('PatientRegister');
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const patientId = searchParams.get('patientId');
 
   const renderComponent = () => {
     switch (activeComponent) {
       case 'PatientRegister':
         return <PatientRegister />;
       case 'PatientList':
-        return <PatientList />;
+        return <PatientList onPatientSelect={handlePatientSelect} />;
       case 'PatientReport':
         return <PatientReport />;
+      case 'PatientDetails':
+        return patientId ? <PatientDetails patientId={patientId} /> : null;
       default:
         return <PatientRegister />;
     }
+  };
+
+  const handlePatientSelect = (id: string) => {
+    setActiveComponent('PatientDetails');
+    router.push(`/admin?patientId=${id}`);
   };
 
   return (
