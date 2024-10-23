@@ -23,11 +23,11 @@ interface MedicalHistory {
 
 interface PatientDetailsProps {
   patientId: string;
+  medicalHistory: Array<MedicalHistory>;
 }
 
-const PatientDetails: React.FC<PatientDetailsProps> = ({ patientId }) => {
+const PatientDetails: React.FC<PatientDetailsProps> = ({ patientId, medicalHistory }) => {
   const [patient, setPatient] = useState<PatientDetail | null>(null);
-  const [medicalHistory, setMedicalHistory] = useState<MedicalHistory[]>([]);
 
   useEffect(() => {
     // Fetch patient data and medical history based on patientId
@@ -42,18 +42,6 @@ const PatientDetails: React.FC<PatientDetailsProps> = ({ patientId }) => {
       email: "",
       address: "delhi",
     });
-
-    setMedicalHistory([
-      {
-        date: "20/10/2024",
-        billId: "RE3",
-        tests: "Vitamin D3, Complete Blood Count (CBC)",
-        rfDoctor: "Tony",
-        due: 30,
-        amount: 80,
-        status: "Ongoing",
-      },
-    ]);
   }, [patientId]);
 
   if (!patient) {

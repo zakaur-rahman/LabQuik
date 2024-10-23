@@ -30,7 +30,7 @@ const PatientDetailPage: React.FC = () => {
   ];
 
   return (
-    <PatientDetails patient={dummyPatient} medicalHistory={dummyMedicalHistory} />
+    <PatientDetails patientId={id as string} medicalHistory={dummyMedicalHistory} />
   );
 };
 
