@@ -1,20 +1,52 @@
 'use client';
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Heading from "../utils/Heading";
-import SideBar from "../components/admin/sidebar/SideBar";
 import PatientRegister from "../components/patient/PatientRegister";
 import PatientList from "../components/patient/PatientList";
-import PatientReport from "../components/patient/PatientReport";
+import UpdateReport from "../components/patient/update-report/UpdateReport";
 import PatientDetails from "../components/patient/PatientDetails";
 import Header from "../components/header/Header";
+import SideBar from "../components/admin/sidebar/SideBar";
 import { useRouter, useSearchParams } from 'next/navigation';
+import TestList from "../components/tests/TestList";
+import ViewReport from "../components/patient/update-report/ViewReport";
 
 const Page = () => {
   const [collapsed, setCollapsed] = useState(false);
-  const [activeComponent, setActiveComponent] = useState('PatientRegister');
+  const [activeComponent, setActiveComponent] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('activeComponent') || 'PatientRegister';
+    }
+    return 'PatientRegister';
+  });
   const router = useRouter();
   const searchParams = useSearchParams();
-  const patientId = searchParams.get('patientId');
+  const [patientId, setPatientId] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('patientId') || null;
+    }
+    return null;
+  });
+
+  useEffect(() => {
+    const component = searchParams?.get('component');
+    const id = searchParams?.get('patientId');
+    if (component) {
+      setActiveComponent(component);
+      localStorage.setItem('activeComponent', component);
+    }
+    if (id) {
+      setPatientId(id);
+      localStorage.setItem('patientId', id);
+    }
+  }, [searchParams]);
+
+  useEffect(() => {
+    localStorage.setItem('activeComponent', activeComponent);
+    if (patientId) {
+      localStorage.setItem('patientId', patientId);
+    }
+  }, [activeComponent, patientId]);
 
   const renderComponent = () => {
     switch (activeComponent) {
@@ -23,9 +55,13 @@ const Page = () => {
       case 'PatientList':
         return <PatientList onPatientSelect={handlePatientSelect} />;
       case 'PatientReport':
-        return <PatientReport />;
+        return <UpdateReport />;
       case 'PatientDetails':
-        return patientId ? <PatientDetails patientId={patientId} /> : null;
+        return patientId ? <PatientDetails patientId={patientId} medicalHistory={[]} /> : null;
+      case 'TestList':
+        return <TestList />;
+      case 'ViewReport':
+        return patientId ? <ViewReport patientId={patientId} onClose={() => handleComponentChange('PatientReport')} /> : null;
       default:
         return <PatientRegister />;
     }
@@ -33,7 +69,13 @@ const Page = () => {
 
   const handlePatientSelect = (id: string) => {
     setActiveComponent('PatientDetails');
-    router.push(`/admin?patientId=${id}`);
+    setPatientId(id);
+    router.push(`/admin?component=PatientDetails&patientId=${id}`);
+  };
+
+  const handleComponentChange = (component: string) => {
+    setActiveComponent(component);
+    router.push(`/admin?component=${component}`);
   };
 
   return (
@@ -45,7 +87,8 @@ const Page = () => {
             <SideBar 
               collapsed={collapsed} 
               setCollapsed={setCollapsed} 
-              setActiveComponent={setActiveComponent}
+              setActiveComponent={handleComponentChange}
+              activeComponent={activeComponent}
             />
           </aside>
           <div className={`flex-1 transition-all duration-300 ${collapsed ? 'ml-20' : 'ml-64'}`}>

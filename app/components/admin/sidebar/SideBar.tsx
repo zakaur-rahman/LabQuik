@@ -1,5 +1,5 @@
 "use client";
-import React from "react";
+import React, { useState, ReactNode } from "react";
 import {
   Sidebar,
   Menu,
@@ -10,8 +10,6 @@ import {
 } from "react-pro-sidebar";
 import { SidebarHeader } from "./components/SidebarHeader";
 import { Badge } from "./components/Badge";
-import { useSelector } from "react-redux";
-
 import {
   UserRoundPlus,
   FlaskConical,
@@ -19,9 +17,11 @@ import {
   ScrollText,
   UserRoundPen,
   FileCheck2,
-  ClipboardCheck,
+  Package,
   Gauge,
 } from "lucide-react";
+import { useFloating, offset, shift, flip, arrow, useHover, useInteractions, FloatingPortal } from '@floating-ui/react';
+
 
 type Theme = "light" | "dark";
 
@@ -75,15 +75,70 @@ interface PlaygroundProps {
   collapsed: boolean;
   setCollapsed: (collapsed: boolean) => void;
   setActiveComponent: (component: string) => void;
+  activeComponent: string;
 }
 
-export const Playground: React.FC<PlaygroundProps> = ({ collapsed, setCollapsed, setActiveComponent }) => {
+interface MenuItemWithTooltipProps {
+  icon: ReactNode;
+  children: ReactNode;
+  collapsed: boolean;
+  onClick: () => void;
+  isActive: boolean;
+}
+
+const MenuItemWithTooltip = ({ icon, children, collapsed, onClick, isActive }: MenuItemWithTooltipProps) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const {x, y, strategy, refs, context} = useFloating({
+    open: isOpen,
+    onOpenChange: setIsOpen,
+    middleware: [offset(10), flip(), shift()],
+    placement: 'right',
+  });
+
+  const hover = useHover(context);
+  const {getReferenceProps, getFloatingProps} = useInteractions([hover]);
+
+  return (
+    <MenuItem
+      icon={icon}
+      onClick={onClick}
+      ref={refs.setReference}
+      {...getReferenceProps()}
+      className={isActive ? 'bg-blue-100 dark:bg-blue-900' : ''}
+    >
+      {children}
+      {collapsed && (
+        <FloatingPortal>
+          {isOpen && (
+            <div
+              ref={refs.setFloating}
+              style={{
+                position: strategy,
+                top: y ?? 0,
+                left: x ?? 0,
+                width: 'max-content',
+                zIndex: 9999,
+              }}
+              {...getFloatingProps()}
+            >
+              <div className="bg-gray-800 text-white px-2 py-1 rounded text-sm">
+                {children}
+              </div>
+            </div>
+          )}
+        </FloatingPortal>
+      )}
+    </MenuItem>
+  );
+};
+
+export const Playground: React.FC<PlaygroundProps> = ({ collapsed, setCollapsed, setActiveComponent, activeComponent }) => {
   const [toggled, setToggled] = React.useState(false);
   const [broken, setBroken] = React.useState(false);
   const [rtl, setRtl] = React.useState(false);
   const [hasImage, setHasImage] = React.useState(false);
   const [theme, setTheme] = React.useState<Theme>("light");
-  const { user } = useSelector((state: any) => state.auth);
+ // const { user } = useSelector((state: any) => state.auth);
 
   // handle on RTL change event
   const handleRTLChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -163,36 +218,48 @@ export const Playground: React.FC<PlaygroundProps> = ({ collapsed, setCollapsed,
           /> 
 
           <Menu menuItemStyles={menuItemStyles}>
-            <MenuItem
+            <MenuItemWithTooltip
               icon={<UserRoundPlus aria-hidden="true" />}
-              suffix={<Badge variant="success">New</Badge>}
+              collapsed={collapsed}
               onClick={() => setActiveComponent('PatientRegister')}
+              isActive={activeComponent === 'PatientRegister'}
             >
               Patient Registration
-            </MenuItem>
-            <MenuItem
+            </MenuItemWithTooltip>
+            <MenuItemWithTooltip
               icon={<ScrollText />}
+              collapsed={collapsed}
               onClick={() => setActiveComponent('PatientList')}
+              isActive={activeComponent === 'PatientList'}
             >
               Patient List
-            </MenuItem>
-            <MenuItem
+            </MenuItemWithTooltip>
+            <MenuItemWithTooltip
               icon={<FileCheck2 />}
+              collapsed={collapsed}
               onClick={() => setActiveComponent('PatientReport')}
+              isActive={activeComponent === 'PatientReport'}
             >
               Patient Report
-            </MenuItem>
+            </MenuItemWithTooltip>
             <SubMenu
               label="Tests"
               icon={<FlaskConical />}
+              defaultOpen={activeComponent.startsWith('Test')}
             >
-              <MenuItem className="dark:bg-[#162149]"> Test List</MenuItem>
+              <MenuItem 
+                className={`dark:bg-[#162149] ${activeComponent === 'TestList' ? 'bg-blue-100 dark:bg-blue-900' : ''}`}
+                onClick={() => setActiveComponent('TestList')}
+              > 
+                Test List
+              </MenuItem>
               <MenuItem className="dark:bg-[#162149]"> Packages</MenuItem>
               <MenuItem className="dark:bg-[#162149]" suffix={<Badge variant="success">Pro</Badge>}> Outsource</MenuItem>
             </SubMenu>
             <SubMenu
               label="Lab Management"
               icon={<Users />}
+              title="Lab Management"
               
             >
               <MenuItem className="dark:bg-[#162149]"> Organization</MenuItem>
@@ -201,7 +268,8 @@ export const Playground: React.FC<PlaygroundProps> = ({ collapsed, setCollapsed,
             </SubMenu>
             <SubMenu
               label="Inventory"
-              icon={<ClipboardCheck />}
+              icon={<Package />}
+              title="Inventory"
               
             >
               <MenuItem className="dark:bg-[#162149]"> Dashboard</MenuItem>
