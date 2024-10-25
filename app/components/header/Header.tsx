@@ -6,7 +6,7 @@ export default function HeaderNav() {
     <header className="h-16 bg-white border-b flex items-center justify-between px-4 flex-wrap">
       <div className="flex items-center space-x-4 w-full md:w-auto mb-4 md:mb-0">
         <h1 className="text-2xl font-bold text-blue-600 flex items-center">
-          <span className="font-light mr-1">f</span>labs
+          <span className="font-light mr-1">Lab</span>Quik
         </h1>
         
         <form role="search" className="relative flex-grow  md:flex-grow-0">

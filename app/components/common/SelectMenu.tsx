@@ -68,7 +68,7 @@ const SelectMenu: React.FC<SelectMenuProps> = ({
       <div className="flex gap-2">
         <div className="relative flex-1">
           <div
-            className={`w-full px-3 py-2 border rounded-lg flex items-center ${className}`}
+            className={`w-full px-3 py-2 border rounded flex items-center ${className}`}
             onClick={handleInputClick}
           >
             <input
@@ -82,7 +82,7 @@ const SelectMenu: React.FC<SelectMenuProps> = ({
             <ChevronDown className="w-5 h-5 text-gray-400" />
           </div>
           {isOpen && (
-            <div className="absolute z-10 w-full mt-1 bg-white border rounded-lg shadow-lg">
+            <div className="absolute z-10 w-full mt-1 bg-white border rounded shadow-lg">
               <ul className="max-h-60 overflow-auto">
                 {filteredOptions.map((option) => (
                   <li
@@ -104,7 +104,7 @@ const SelectMenu: React.FC<SelectMenuProps> = ({
           <button
             type="button"
             onClick={onAdd}
-            className="p-2 bg-blue-500 text-white rounded-lg"
+            className="p-2 bg-blue-500 text-white rounded"
             aria-label={`Add ${label}`}
           >
             <Plus className="w-5 h-5" aria-hidden="true" />
