@@ -43,7 +43,7 @@ const SampleCollector: React.FC<SampleCollectorProps> = ({
   };
 
   return (
-    <div className="bg-transparent p-2 rounded-lg text-[#000000] max-w-md w-full">
+    <div className="bg-transparent p-2 rounded text-[#000000] max-w-md w-full">
       <div className="flex justify-between items-center mb-4">
         <h2 className="text-xl font-bold">Add Sample Collector</h2>
         <button
@@ -68,7 +68,7 @@ const SampleCollector: React.FC<SampleCollectorProps> = ({
             name="name"
             value={formData.name}
             onChange={handleInputChange}
-            className="w-full px-3 py-2 border rounded-lg"
+            className="w-full px-3 py-2 border rounded"
             required
           />
         </div>
@@ -105,7 +105,7 @@ const SampleCollector: React.FC<SampleCollectorProps> = ({
             name="phone"
             value={formData.phone}
             onChange={handleInputChange}
-            className="w-full px-3 py-2 border rounded-lg"
+            className="w-full px-3 py-2 border rounded"
             required
           />
         </div>
@@ -122,13 +122,13 @@ const SampleCollector: React.FC<SampleCollectorProps> = ({
             name="email"
             value={formData.email}
             onChange={handleInputChange}
-            className="w-full px-3 py-2 border rounded-lg"
+            className="w-full px-3 py-2 border rounded"
           />
         </div>
         <div className="flex justify-end">
           <button
             type="submit"
-            className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600"
+            className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
           >
             Save
           </button>

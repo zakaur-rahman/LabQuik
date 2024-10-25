@@ -8,9 +8,14 @@ import {
   Edit2,
   Trash2,
   ArrowUpDown,
+  Check,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
+import NewModal from "@/app/utils/NewModal";
+import Invoice from "./Invoice";
+import CustomModal from "@/app/utils/CustomModal";
+import ClearDue from "./ClearDue";
 
 interface Patient {
   id: string;
@@ -45,6 +50,10 @@ const PatientList: React.FC<PatientListProps> = ({ onPatientSelect }) => {
   } | null>(null);
   const expandedContentRef = useRef<HTMLDivElement>(null);
   const [isMounted, setIsMounted] = useState(false);
+  const [isInvoiceModalOpen, setIsInvoiceModalOpen] = useState(false);
+  const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
+  const [isClearDueModalOpen, setIsClearDueModalOpen] = useState(false);
+  const [selectedPatientForClearDue, setSelectedPatientForClearDue] = useState<Patient | null>(null);
 
   useEffect(() => {
     setIsMounted(true);
@@ -152,8 +161,18 @@ const PatientList: React.FC<PatientListProps> = ({ onPatientSelect }) => {
     setSortConfig({ key, direction });
   };
 
+  const handleBillClick = (patient: Patient) => {
+    setSelectedPatient(patient);
+    setIsInvoiceModalOpen(true);
+  };
+
+  const handleClearDueClick = (patient: Patient) => {
+    setSelectedPatientForClearDue(patient);
+    setIsClearDueModalOpen(true);
+  };
+
   return (
-    <div className="p-4 space-y-4 text-[#000000]">
+    <main className="p-4 space-y-4 text-[#000000]">
       <h1 className="text-2xl font-bold">Patient List</h1>
 
       <div className="flex flex-wrap gap-4 items-center justify-between">
@@ -284,12 +303,25 @@ const PatientList: React.FC<PatientListProps> = ({ onPatientSelect }) => {
                   </td>
                   <td className="p-2">
                     <div className="flex space-x-2 justify-center">
-                      <button className="border border-blue-500 text-black px-4 py-1 rounded">
+                      <button
+                        className="border border-blue-500 text-black px-4 py-1 rounded"
+                        onClick={() => handleBillClick(patient)}
+                      >
                         Bill
                       </button>
-                      <button className="bg-blue-500 text-white px-4 py-1 rounded flex items-center">
-                        <Printer size={16} className="mr-1" /> Print Report
-                      </button>
+
+                      {patient.dueAmount !== 0 ? (
+                        <button 
+                          className="bg-red-500 text-white text-center justify-center px-4 w-[140px] py-1 rounded flex items-center"
+                          onClick={() => handleClearDueClick(patient)}
+                        >
+                          Clear Due
+                        </button>
+                      ) : (
+                        <button className="bg-blue-500 text-white px-4 py-1 rounded flex items-center">
+                          <Printer size={16} className="mr-1" /> Print Report
+                        </button>
+                      )}
                     </div>
                   </td>
                 </tr>
@@ -329,7 +361,7 @@ const PatientList: React.FC<PatientListProps> = ({ onPatientSelect }) => {
                           </div>
                           <div className="flex flex-col space-y-2 mr-6">
                             <button
-                              className="bg-blue-500 text-white px-4 py-2 rounded flex items-center"
+                              className="bg-red-500 text-white px-4 py-2 rounded flex items-center"
                               onClick={() => onPatientSelect(patient.id)}
                             >
                               <Eye size={16} className="mr-1" /> View Details
@@ -351,7 +383,50 @@ const PatientList: React.FC<PatientListProps> = ({ onPatientSelect }) => {
           </tbody>
         </table>
       </div>
-    </div>
+      {isInvoiceModalOpen && selectedPatient && (
+        <NewModal
+          open={isInvoiceModalOpen}
+          setOpen={setIsInvoiceModalOpen}
+          component={(props) => (
+            <Invoice
+              {...props}
+              billId={selectedPatient.id}
+              billDate={selectedPatient.date}
+              patientName={selectedPatient.name}
+              age={selectedPatient.age}
+              gender={selectedPatient.gender}
+              referredBy={selectedPatient.referringDoctor}
+              paymentType="Cash" // You may want to add this to your Patient interface
+              tests={selectedPatient.tests.map((test) => ({
+                description: test,
+                amount: 0,
+              }))} // You may want to add prices to your tests
+              discount={0} // You may want to add this to your Patient interface
+              paymentMade={selectedPatient.amount - selectedPatient.dueAmount}
+              clinicName="Your Clinic Name"
+              clinicAddress="Your Clinic Address"
+              clinicPhone="Your Clinic Phone"
+              clinicEmail="Your Clinic Email"
+            />
+          )}
+          className="w-full max-w-4xl mx-4 h-[80vh] overflow-y-scroll"
+        />
+      )}
+      {isClearDueModalOpen && selectedPatientForClearDue && (
+        <CustomModal
+          open={isClearDueModalOpen}
+          setOpen={setIsClearDueModalOpen}
+          component={(props) => (
+            <ClearDue
+              {...props}
+              patient={selectedPatientForClearDue}
+              onClose={() => setIsClearDueModalOpen(false)}
+            />
+          )}
+          className="w-full max-w-6xl mx-4"
+        />
+      )}
+    </main>
   );
 };
 

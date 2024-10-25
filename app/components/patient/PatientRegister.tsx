@@ -6,6 +6,9 @@ import CustomModal from "../../utils/CustomModal";
 import dynamic from 'next/dynamic';
 import AddOrganization from '../common/AddOrganization';
 import SampleCollectionAddress from '../common/SampleCollectionAddress';
+import BillingTab from './BillingTab';
+import Invoice from './Invoice';
+import NewModal from "@/app/utils/NewModal";
 
 const QuotationForm = dynamic(() => import('./Quotation'), { ssr: false });
 const SampleCollector = dynamic(() => import('../common/SampleCollector'), { ssr: false });
@@ -14,6 +17,15 @@ const SampleCollector = dynamic(() => import('../common/SampleCollector'), { ssr
 interface SampleCollectorData {
   // Define the expected properties of the data object
   name: string;
+  // Add other relevant properties
+}
+
+// Add this interface near the top of the file
+interface InvoiceData {
+  // Define the expected properties of the invoice data
+  // For example:
+  total: number;
+  items: Array<{ name: string; price: number }>;
   // Add other relevant properties
 }
 
@@ -39,7 +51,9 @@ const PatientRegister = () => {
   const [isSampleCollectorModalOpen, setIsSampleCollectorModalOpen] = useState(false);
   const [isAddOrganizationModalOpen, setIsAddOrganizationModalOpen] = useState(false);
   const [isCollectionAddressModalOpen, setIsCollectionAddressModalOpen] = useState(false);
-
+  const [isBillingModalOpen, setIsBillingModalOpen] = useState(false);
+  const [isInvoiceModalOpen, setIsInvoiceModalOpen] = useState(false);
+  const [invoiceData, setInvoiceData] = useState<InvoiceData | null>(null);
   const handleInputChange = (field: string, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
@@ -77,6 +91,13 @@ const PatientRegister = () => {
 
   const handleCloseAddOrganization = () => {
     setIsAddOrganizationModalOpen(false);
+  };
+  const handleBilling = () => {
+    setIsBillingModalOpen(true);
+  };
+
+  const handleCloseBilling = () => {
+    setIsBillingModalOpen(false);
   };
 
   const handleSaveOrganization = (organizationData: any) => {
@@ -120,6 +141,17 @@ const PatientRegister = () => {
     { id: '3', name: 'Lab 3' },
   ];
 
+  const handleRegisterAndPrintBill = (data: InvoiceData) => {
+    setIsBillingModalOpen(false);
+    setInvoiceData(data);
+    setIsInvoiceModalOpen(true);
+  };
+
+  const handleCloseInvoice = () => {
+    setIsInvoiceModalOpen(false);
+    setInvoiceData(null);
+  };
+
   return (
     <main className="w-full mx-auto px-4 lg:px-8 xl:px-16 py-6 space-y-6 text-[#000000]">
       <header className="flex flex-col md:flex-row justify-between items-start md:items-center space-y-4 md:space-y-0">
@@ -128,7 +160,7 @@ const PatientRegister = () => {
         </h1>
         <div className="flex items-center gap-4">
           <p className="text-sm text-orange-500">Demo Videos</p>
-          <button className="flex items-center gap-2 bg-blue-500 text-white px-4 py-2 rounded-lg text-sm">
+          <button className="flex items-center gap-2 bg-blue-500 text-white px-4 py-2 rounded text-sm">
             Watch Videos
             <svg
               className="w-4 h-4"
@@ -153,7 +185,7 @@ const PatientRegister = () => {
             <input
               type="text"
               placeholder="Search patient"
-              className="w-full px-4 py-2 border rounded-lg"
+              className="w-full px-4 py-2 border rounded"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               aria-label="Search patient"
@@ -164,7 +196,7 @@ const PatientRegister = () => {
             />
           </div>
           <button 
-            className="bg-blue-500 text-white px-6 py-2 rounded-lg"
+            className="bg-blue-500 text-white px-6 py-2 rounded"
             onClick={handleQuotationClick}
           >
             Quotation
@@ -189,7 +221,7 @@ const PatientRegister = () => {
               </label>
               <select
                 id="designation"
-                className="w-full px-3 py-2 border rounded-lg"
+                className="w-full px-3 py-2 border rounded"
               >
                 <option>MR</option>
                 <option>MS</option>
@@ -208,7 +240,7 @@ const PatientRegister = () => {
               id="firstName"
               type="text"
               placeholder="First Name"
-              className="w-full px-3 py-2 border rounded-lg"
+              className="w-full px-3 py-2 border rounded"
               required
             />
           </div>
@@ -220,7 +252,7 @@ const PatientRegister = () => {
               id="lastName"
               type="text"
               placeholder="Last Name"
-              className="w-full px-3 py-2 border rounded-lg"
+              className="w-full px-3 py-2 border rounded"
             />
           </div>
           <div>
@@ -289,7 +321,7 @@ const PatientRegister = () => {
               <input
                 type="text"
                 placeholder="Age"
-                className="w-full px-3 py-2 border rounded-lg"
+                className="w-full px-3 py-2 border rounded"
               />
             </div>
           </div>
@@ -299,7 +331,7 @@ const PatientRegister = () => {
               <input
                 type="email"
                 placeholder="Email"
-                className="w-full px-3 py-2 border rounded-lg"
+                className="w-full px-3 py-2 border rounded"
               />
             </div>
             <div>
@@ -308,7 +340,7 @@ const PatientRegister = () => {
               </label>
               <select
                 id="ageType"
-                className="w-full px-3 py-2 border rounded-lg"
+                className="w-full px-3 py-2 border rounded"
               >
                 <option>Year</option>
                 <option>Month</option>
@@ -320,7 +352,7 @@ const PatientRegister = () => {
             <label className="block text-sm mb-1">Address</label>
             <textarea
               placeholder="Address"
-              className="w-full px-3 py-2 border rounded-lg resize-none h-32"
+              className="w-full px-3 py-2 border rounded resize-none h-32"
             />
           </div>
         </div>
@@ -361,8 +393,9 @@ const PatientRegister = () => {
 
       <footer className="flex justify-end">
         <button
+          onClick={handleBilling}
           type="submit"
-          className="bg-blue-500 text-white px-6 py-2 rounded-lg w-full sm:w-auto"
+          className="bg-blue-500 text-white px-6 py-2 rounded w-full sm:w-auto"
         >
           Go to Billing
         </button>
@@ -413,6 +446,36 @@ const PatientRegister = () => {
               onClose={handleCloseCollectionAddress}
             />
           )}
+        />
+      )}
+
+      {isBillingModalOpen && (
+        <CustomModal
+          open={isBillingModalOpen}
+          setOpen={setIsBillingModalOpen}
+          component={(props) => (
+            <BillingTab 
+              {...props} 
+              onClose={handleCloseBilling} 
+              onRegisterAndPrintBill={handleRegisterAndPrintBill}
+            />
+          )}
+          className="w-full max-w-7xl mx-4 h-[80vh]"
+        />
+      )}
+
+      {isInvoiceModalOpen && invoiceData && (
+        <NewModal
+          open={isInvoiceModalOpen}
+          setOpen={setIsInvoiceModalOpen}
+          component={(props) => (
+            <Invoice 
+              {...props} 
+              {...invoiceData}
+              onClose={handleCloseInvoice}
+            />
+          )}
+          className="w-full max-w-4xl mx-4 h-[80vh] overflow-y-scroll "
         />
       )}
     </main>
