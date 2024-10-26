@@ -1,7 +1,10 @@
 import React, { useState } from 'react';
 import { Search, ListPlus, Edit, RefreshCw, Plus } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 
 const TestList = () => {
+  const router = useRouter();
+
   // Sample data - in real app would likely come from props or API
   const tests = [
     {
@@ -60,6 +63,10 @@ const TestList = () => {
       }
     }
     return buttons;
+  };
+
+  const handleEditTest = (testId: number) => {
+    router.push(`/admin?component=EditTest&testId=${testId}`);
   };
 
   return (
@@ -142,7 +149,10 @@ const TestList = () => {
                 </td>
                 <td className="px-4 py-3">
                   <div className="flex justify-end gap-2">
-                    <button className="flex items-center px-3 py-1 text-sm bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors">
+                    <button 
+                      className="flex items-center px-3 py-1 text-sm bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
+                      onClick={() => handleEditTest(test.id)}
+                    >
                       <Edit className="h-4 w-4 mr-1" />
                       Edit
                     </button>
