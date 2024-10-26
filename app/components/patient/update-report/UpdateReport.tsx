@@ -7,6 +7,15 @@ import CompletedReports from './CompletedReports';
 import ViewReport from './ViewReport';
 import { useRouter } from 'next/navigation';
 
+// Add this import
+
+type Patient = {
+  id: string;
+  details: { name: string; age: string; gender: string };
+  doctor: string;
+  status: string;
+};
+
 const UpdateReport = () => {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState('All');
