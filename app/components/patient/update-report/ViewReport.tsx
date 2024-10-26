@@ -2,6 +2,20 @@ import React, { useState } from 'react';
 import { Check, ChevronLeft, ChevronRight } from 'lucide-react';
 import RichTextEditor from '../../common/TextEditor';
 
+// Define the Patient type (should match the one in AllReports.tsx)
+type Patient = {
+  id: string;
+  details: { name: string; age: string; gender: string };
+  doctor: string;
+  status: string;
+};
+
+// Define the props for the ViewReport component
+interface ViewReportProps {
+  patient: Patient;
+  onClose: () => void;
+}
+
 // Button Component
 const Button = ({ variant = 'default', size = 'default', className = '', children, ...props }: {
   variant?: 'default' | 'secondary' | 'outline' | 'ghost';
@@ -67,7 +81,7 @@ const Checkbox = ({ label, checked, onChange }: { label: string; checked: boolea
 );
 
 // Main UltrasoundReportEditor Component
-const UltrasoundReportEditor = () => {
+const UltrasoundReportEditor: React.FC<ViewReportProps> = ({ patient, onClose }) => {
   const [activeTab, setActiveTab] = useState('tests');
   const [showInterpretation, setShowInterpretation] = useState(false);
 
@@ -76,10 +90,10 @@ const UltrasoundReportEditor = () => {
       {/* Header */}
       <div className="flex justify-between items-center mb-4">
         <div className="flex gap-6">
-          <span>Name: Arsalan Ahmad</span>
-          <span>Gender: male</span>
-          <span>Age: 12 year</span>
-          <span className="text-green-500">Status: Completed</span>
+          <span>Name: {patient?.details.name}</span>
+          <span>Gender: {patient?.details.gender}</span>
+          <span>Age: {patient?.details.age}</span>
+          <span className="text-green-500">Status: {patient?.status}</span>
         </div>
         <div className="flex gap-2">
           <Button variant="secondary">Print</Button>

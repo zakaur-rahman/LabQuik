@@ -3,7 +3,7 @@ import { Calendar, Search } from 'lucide-react';
 //import Sidebar from './Sidebar';
 import ViewReport from './ViewReport';
 
-// Define the type for a patient
+// Update the Patient type to match the structure used in the component
 type Patient = {
   id: string;
   details: { name: string; age: string; gender: string };
@@ -11,11 +11,11 @@ type Patient = {
   status: string;
 };
 
-// Add this type definition
-type ViewReportProps = {
+// Update the ViewReportProps type
+interface ViewReportProps {
   patient: Patient;
   onClose: () => void;
-};
+}
 
 const AllReports = ({ onViewReport }: { onViewReport: (patientId: string) => void }) => {
   const [startDate, setStartDate] = useState('2024-10-20');
