@@ -1,18 +1,35 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Trash2Icon, PlusIcon, PencilIcon } from "lucide-react";
 import { DropResult } from "@hello-pangea/dnd";
 import { TestFieldsTable } from "./TestFieldsTable";
 import { MultipleFieldsEditor } from "./MultipleFieldsEditor";
 import { TextEditor } from "./TextEditor";
+import CustomDropdown from "./CustomDropdown";
 
 type EditorType = "Single field" | "Multiple fields" | "Text Editor";
 
-interface TestField {
+interface TableData {
   name: string;
   field: string;
   units: string;
-  range: string;
   formula: string;
+  testMethod: string;
+  range: {
+    numeric: {
+      minRange: string;
+      maxRange: string;
+    };
+    text: string;
+    numeric_unbound: {
+      comparisonOperator: string;
+      value: string;
+    };
+    multiple_range: string;
+    custom: {
+      options: string[];
+      defaultOption: string;
+    };
+  };
 }
 
 interface TestData {
@@ -25,62 +42,108 @@ interface TestData {
   age: string;
   suffix: string;
   type: EditorType;
-  method: string;
-  field: string;
-  units: string;
-  minRange: string;
-  maxRange: string;
 }
+
+const initialTableData: TableData = {
+  name: "",
+  field: "numeric",
+  units: "",
+  formula: "",
+  testMethod: "",
+  range: {
+    numeric: {
+      minRange: "",
+      maxRange: "",
+    },
+    text: "",
+    numeric_unbound: {
+      comparisonOperator: "",
+      value: "",
+    },
+    multiple_range: "",
+    custom: {
+      options: [],
+      defaultOption: "",
+    },
+  },
+};
+
+const initialTestData: TestData = {
+  department: "MOLECULAR BIOLOGY",
+  testName: "Biology Test",
+  cost: 0,
+  testCode: "",
+  sex: "Male",
+  sampleType: "Serum",
+  age: "default",
+  suffix: "",
+  type: "Single field",
+};
 
 interface EditTestProps {
   testId: number;
 }
 
 const EditTestPage: React.FC<EditTestProps> = ({ testId }) => {
-  // State for the test fields (table data)
-  const [testFields, setTestFields] = useState<TestField[]>([
-    {
-      name: "HIV VIRAL LOAD",
-      field: "text",
-      units: "Copies/ml",
-      range: "",
-      formula: "",
-    },
-    {
-      name: "CD4 COUNT",
-      field: "number",
-      units: "cells/µL",
-      range: "500-1500",
-      formula: "",
-    },
-    {
-      name: "HIV ANTIBODY",
-      field: "select",
-      units: "",
-      range: "Positive,Negative",
-      formula: "",
-    },
-  ]);
+  const [tableData, setTableData] = useState<TableData>(initialTableData);
+  const [testData, setTestData] = useState<TestData>(initialTestData);
+  const [testFields, setTestFields] = useState<TableData[]>([]);
+  const [selectedRowIndex, setSelectedRowIndex] = useState<number | null>(null);
 
-  // State for form data
-  const [formData, setFormData] = useState<TestData>({
-    department: "MOLECULAR BIOLOGY",
-    testName: "HIV VIRAL LOAD",
-    cost: 0,
-    testCode: "HIV",
-    sex: "Male",
-    sampleType: "Serum",
-    age: "default",
-    suffix: "",
-    type: "Single field",
-    method: "",
-    field: "text",
-    units: "Copies/ml",
-    minRange: "",
-    maxRange: "",
-  });
+  const handleTableDataChange = (newData: Partial<TableData>) => {
+    setTableData((prevData) => {
+      let updatedData = { ...prevData, ...newData };
 
-  // Handle drag and drop in the table
+      // Reset range and units when field type changes
+      if (newData.field && newData.field !== prevData.field) {
+        updatedData = {
+          ...updatedData,
+          units: "",
+          range: {
+            numeric: { minRange: "", maxRange: "" },
+            text: "",
+            numeric_unbound: { comparisonOperator: "", value: "" },
+            multiple_range: "",
+            custom: { options: [], defaultOption: "" },
+          },
+        };
+      }
+
+      return updatedData;
+    });
+
+    if (selectedRowIndex !== null) {
+      setTestFields((prevFields) => {
+        const updatedFields = [...prevFields];
+        updatedFields[selectedRowIndex] = {
+          ...updatedFields[selectedRowIndex],
+          ...newData,
+        };
+
+        // Reset range and units in testFields when field type changes
+        if (newData.field && newData.field !== prevFields[selectedRowIndex].field) {
+          updatedFields[selectedRowIndex] = {
+            ...updatedFields[selectedRowIndex],
+            units: "",
+            range: {
+              numeric: { minRange: "", maxRange: "" },
+              text: "",
+              numeric_unbound: { comparisonOperator: "", value: "" },
+              multiple_range: "",
+              custom: { options: [], defaultOption: "" },
+            },
+          };
+        }
+
+        return updatedFields;
+      });
+    }
+  };
+
+  const handleTestDataChange = (newData: Partial<TestData>) => {
+    setTestData((prevData) => ({ ...prevData, ...newData }));
+  };
+
   const onDragEnd = (result: DropResult) => {
     if (!result.destination) return;
 
@@ -91,61 +154,73 @@ const EditTestPage: React.FC<EditTestProps> = ({ testId }) => {
     setTestFields(items);
   };
 
-  // Handle deleting a field from the table
   const handleDeleteField = (index: number) => {
     setTestFields((prev) => prev.filter((_, i) => i !== index));
+    if (selectedRowIndex === index) {
+      setSelectedRowIndex(null);
+      setTableData(initialTableData);
+    }
   };
 
-  // Handle form input changes
   const handleInputChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
   ) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
+    handleTestDataChange({ [name]: value });
+
+    if (name === "testName") {
+      handleTableDataChange({ name: value });
+    }
   };
 
-  // Handle form submission
+  const handleRowSelect = (field: TableData | null, index: number) => {
+    if (field) {
+      setTableData(field);
+      setTestData((prevData) => ({ ...prevData, testName: field.name }));
+      setSelectedRowIndex(index);
+    } else {
+      setTableData(initialTableData);
+      setTestData((prevData) => ({ ...prevData, testName: "" }));
+      setSelectedRowIndex(null);
+    }
+  };
+
+  const resetForm = () => {
+    setTestData(initialTestData);
+    setTableData(initialTableData);
+    setSelectedRowIndex(null);
+  };
+
   const handleSubmit = () => {
-    console.log("Saving test data:", { formData, testFields });
+    console.log("Saving test data:", { testData, testFields, tableData });
     // Add your save logic here
   };
 
-  // Handle resetting the form
   const handleReset = () => {
-    // Add confirmation dialog before resetting
     if (window.confirm("Are you sure you want to reset all fields?")) {
-      setFormData({
-        department: "MOLECULAR BIOLOGY",
-        testName: "",
-        cost: 0,
-        testCode: "",
-        sex: "Male",
-        sampleType: "Serum",
-        age: "default",
-        suffix: "",
-        type: "Single field",
-        method: "",
-        field: "text",
-        units: "",
-        minRange: "",
-        maxRange: "",
-      });
+      resetForm();
       setTestFields([]);
     }
   };
 
-  // Render the appropriate editor based on type selection
+  useEffect(() => {
+    if (selectedRowIndex === null && tableData.name) {
+      const newIndex = testFields.length;
+      setTestFields((prev) => [...prev, tableData]);
+      setSelectedRowIndex(newIndex);
+    }
+  }, [tableData, selectedRowIndex, testFields.length]);
+
   const renderEditor = () => {
-    switch (formData.type) {
+    switch (testData.type) {
       case "Single field":
         return (
           <TestFieldsTable
             testFields={testFields}
             onDragEnd={onDragEnd}
             onDelete={handleDeleteField}
+            onRowSelect={handleRowSelect}
+            selectedRowIndex={selectedRowIndex}
           />
         );
       case "Multiple fields":
@@ -196,8 +271,9 @@ const EditTestPage: React.FC<EditTestProps> = ({ testId }) => {
             <label className="text-sm text-gray-600 mb-1">Department:</label>
             <select
               name="department"
-              value={formData.department}
+              value={testData.department}
               onChange={handleInputChange}
+              aria-label="Department"
               className="w-full border rounded px-3 py-1.5 text-sm"
             >
               <option>MOLECULAR BIOLOGY</option>
@@ -210,8 +286,9 @@ const EditTestPage: React.FC<EditTestProps> = ({ testId }) => {
             <input
               type="text"
               name="testName"
-              value={formData.testName}
+              value={testData.testName}
               onChange={handleInputChange}
+              aria-label="Test Name"
               className="w-full border rounded px-3 py-1.5 text-sm"
             />
           </div>
@@ -220,8 +297,9 @@ const EditTestPage: React.FC<EditTestProps> = ({ testId }) => {
             <input
               type="number"
               name="cost"
-              value={formData.cost}
+              value={testData.cost}
               onChange={handleInputChange}
+              aria-label="Cost"
               className="w-full border rounded px-3 py-1.5 text-sm"
             />
           </div>
@@ -230,8 +308,9 @@ const EditTestPage: React.FC<EditTestProps> = ({ testId }) => {
             <input
               type="text"
               name="testCode"
-              value={formData.testCode}
+              value={testData.testCode}
               onChange={handleInputChange}
+              aria-label="Test Code"
               className="w-full border rounded px-3 py-1.5 text-sm"
             />
           </div>
@@ -243,7 +322,7 @@ const EditTestPage: React.FC<EditTestProps> = ({ testId }) => {
             <label className="text-sm text-gray-600 mb-1">By Sex:</label>
             <select
               name="sex"
-              value={formData.sex}
+              value={testData.sex}
               onChange={handleInputChange}
               aria-label="Gender"
               className="w-full border rounded px-3 py-1.5 text-sm"
@@ -257,8 +336,9 @@ const EditTestPage: React.FC<EditTestProps> = ({ testId }) => {
             <label className="text-sm text-gray-600 mb-1">Sample type:</label>
             <select
               name="sampleType"
-              value={formData.sampleType}
+              value={testData.sampleType}
               onChange={handleInputChange}
+              aria-label="Sample Type"
               className="w-full border rounded px-3 py-1.5 text-sm"
             >
               <option>Serum</option>
@@ -271,7 +351,7 @@ const EditTestPage: React.FC<EditTestProps> = ({ testId }) => {
             <label className="text-sm text-gray-600 mb-1">Age:</label>
             <select
               name="age"
-              value={formData.age}
+              value={testData.age}
               onChange={handleInputChange}
               aria-label="Age"
               className="w-full border rounded px-3 py-1.5 text-sm"
@@ -295,7 +375,7 @@ const EditTestPage: React.FC<EditTestProps> = ({ testId }) => {
             <input
               type="text"
               name="suffix"
-              value={formData.suffix}
+              value={testData.suffix}
               onChange={handleInputChange}
               placeholder="Enter Barcode Suffix"
               className="w-full border rounded px-3 py-1.5 text-sm"
@@ -314,8 +394,9 @@ const EditTestPage: React.FC<EditTestProps> = ({ testId }) => {
               <label className="text-sm text-gray-600 mb-1">Type:</label>
               <select
                 name="type"
-                value={formData.type}
+                value={testData.type}
                 onChange={handleInputChange}
+                aria-label="Type"
                 className="w-full border rounded px-3 py-1.5 text-sm"
               >
                 <option>Single field</option>
@@ -323,81 +404,245 @@ const EditTestPage: React.FC<EditTestProps> = ({ testId }) => {
                 <option>Text Editor</option>
               </select>
             </div>
-            <div>
-              <label className="text-sm text-gray-600 mb-1">Name:</label>
-              <input
-                type="text"
-                name="testName"
-                value={formData.testName}
-                onChange={handleInputChange}
-                className="w-full border rounded px-3 py-1.5 text-sm"
-              />
-            </div>
-            <div>
-              <label className="text-sm text-gray-600 mb-1">Test Method:</label>
-              <select
-                name="method"
-                value={formData.method}
-                onChange={handleInputChange}
-                className="w-full border rounded px-3 py-1.5 text-sm"
-              >
-                <option value="">Select Test Method</option>
-                <option value="pcr">PCR</option>
-                <option value="elisa">ELISA</option>
-                <option value="immunoassay">Immunoassay</option>
-              </select>
-            </div>
-            <div>
-              <label className="text-sm text-gray-600 mb-1">Field:</label>
-              <select
-                name="field"
-                value={formData.field}
-                onChange={handleInputChange}
-                className="w-full border rounded px-3 py-1.5 text-sm"
-              >
-                <option value="text">Text</option>
-                <option value="number">Number</option>
-                <option value="select">Select</option>
-              </select>
-            </div>
-            <div>
-              <label className="text-sm text-gray-600 mb-1">Units:</label>
-              <input
-                type="text"
-                name="units"
-                value={formData.units}
-                onChange={handleInputChange}
-                className="w-full border rounded px-3 py-1.5 text-sm"
-              />
-            </div>
-            <div className="flex gap-2 items-center justify-between">
-              <label className="text-sm text-gray-600 mb-1">Range:</label>
-              <input
-                type="text"
-                name="minRange"
-                value={formData.minRange}
-                onChange={handleInputChange}
-                className="w-full border rounded px-3 py-1.5 text-sm"
-                placeholder="Minimum"
-              />
-              <span className="text-gray-400">to</span>
-              <input
-                type="text"
-                name="maxRange"
-                value={formData.maxRange}
-                onChange={handleInputChange}
-                className="w-full border rounded px-3 py-1.5 text-sm"
-                placeholder="Maximum"
-              />
-            </div>
-            <div className="flex gap-2">
-              <button className="px-3 py-1.5 text-blue-500 border border-blue-500 rounded text-sm hover:bg-blue-50">
-                Add Field
-              </button>
-              <button className="px-3 py-1.5 text-blue-500 border border-blue-500 rounded text-sm hover:bg-blue-50">
-                Add Formula
-              </button>
-            </div>
+            {testData.type === "Single field" && (
+              <>
+                <div>
+                  <label className="text-sm text-gray-600 mb-1">Name:</label>
+                  <input
+                    type="text"
+                    name="name"
+                    value={tableData.name}
+                    onChange={(e) =>
+                      handleTableDataChange({ name: e.target.value })
+                    }
+                    aria-label="Name"
+                    className="w-full border rounded px-3 py-1.5 text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="text-sm text-gray-600 mb-1">
+                    Test Method:
+                  </label>
+                  <select
+                    name="testMethod"
+                    value={tableData.testMethod}
+                    onChange={(e) =>
+                      handleTableDataChange({ testMethod: e.target.value })
+                    }
+                    aria-label="Test Method"
+                    className="w-full border rounded px-3 py-1.5 text-sm"
+                  >
+                    <option value="">Select Test Method</option>
+                    <option value="pcr">PCR</option>
+                    <option value="elisa">ELISA</option>
+                    <option value="immunoassay">Immunoassay</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="text-sm text-gray-600 mb-1">Field:</label>
+                  <select
+                    name="field"
+                    value={tableData.field}
+                    onChange={(e) =>
+                      handleTableDataChange({ field: e.target.value })
+                    }
+                    aria-label="Field"
+                    className="w-full border rounded px-3 py-1.5 text-sm"
+                  >
+                    <option value="numeric">Numeric</option>
+                    <option value="text">Text</option>
+                    <option value="numeric_unbound">Numeric Unbound</option>
+                    <option value="multiple_range">Multiple Range</option>
+                    <option value="custom">Custom</option>
+                  </select>
+                </div>
+                {tableData.field === "custom" && (
+                  <div>
+                    <label className="text-sm text-gray-600 mb-1">
+                      Custom:
+                    </label>
+                    <CustomDropdown
+                      placeholder="Select or create options"
+                      onOptionsChange={(options) =>
+                        handleTableDataChange({
+                          range: {
+                            ...tableData.range,
+                            custom: { ...tableData.range.custom, options },
+                          },
+                        })
+                      }
+                      onDefaultOptionChange={(defaultOption) =>
+                        handleTableDataChange({
+                          range: {
+                            ...tableData.range,
+                            custom: {
+                              ...tableData.range.custom,
+                              defaultOption,
+                            },
+                          },
+                        })
+                      }
+                    />
+                  </div>
+                )}
+                <div>
+                  <label className="text-sm text-gray-600 mb-1">Units:</label>
+                  <input
+                    type="text"
+                    name="units"
+                    value={tableData.units}
+                    onChange={(e) =>
+                      handleTableDataChange({ units: e.target.value })
+                    }
+                    aria-label="Units"
+                    className="w-full border rounded px-3 py-1.5 text-sm"
+                  />
+                </div>
+                {tableData.field === "numeric" && (
+                  <div className="flex gap-2 items-center justify-between">
+                    <label className="text-sm text-gray-600 mb-1">Range:</label>
+                    <input
+                      type="text"
+                      name="minRange"
+                      value={tableData.range.numeric.minRange}
+                      onChange={(e) =>
+                        handleTableDataChange({
+                          range: {
+                            ...tableData.range,
+                            numeric: {
+                              ...tableData.range.numeric,
+                              minRange: e.target.value,
+                            },
+                          },
+                        })
+                      }
+                      aria-label="Minimum"
+                      className="w-full border rounded px-3 py-1.5 text-sm"
+                      placeholder="Minimum"
+                    />
+                    <span className="text-gray-400">to</span>
+                    <input
+                      type="text"
+                      name="maxRange"
+                      value={tableData.range.numeric.maxRange}
+                      onChange={(e) =>
+                        handleTableDataChange({
+                          range: {
+                            ...tableData.range,
+                            numeric: {
+                              ...tableData.range.numeric,
+                              maxRange: e.target.value,
+                            },
+                          },
+                        })
+                      }
+                      aria-label="Maximum"
+                      className="w-full border rounded px-3 py-1.5 text-sm"
+                      placeholder="Maximum"
+                    />
+                  </div>
+                )}
+                {tableData.field === "text" && (
+                  <div>
+                    <label className="text-sm text-gray-600 mb-1">
+                      Formula:
+                    </label>
+                    <textarea
+                      name="textRange"
+                      value={tableData.range.text}
+                      onChange={(e) =>
+                        handleTableDataChange({
+                          range: { ...tableData.range, text: e.target.value },
+                        })
+                      }
+                      aria-label="Formula"
+                      className="w-full border rounded px-3 py-1.5 text-sm"
+                    />
+                  </div>
+                )}
+                {tableData.field === "numeric_unbound" && (
+                  <div className="flex flex-col gap-2">
+                    <label className="text-sm text-gray-600 mb-1">Range:</label>
+                    <div className="flex gap-2 items-center justify-between">
+                      <select
+                        name="comparisonOperator"
+                        value={
+                          tableData.range.numeric_unbound.comparisonOperator
+                        }
+                        onChange={(e) =>
+                          handleTableDataChange({
+                            range: {
+                              ...tableData.range,
+                              numeric_unbound: {
+                                ...tableData.range.numeric_unbound,
+                                comparisonOperator: e.target.value,
+                              },
+                            },
+                          })
+                        }
+                        aria-label="Comparison Operator"
+                        className="w-full border rounded px-3 py-1.5 text-sm"
+                      >
+                        <option value="">Select Comparison Operator</option>
+                        <option value="<=">less than equal to</option>
+                        <option value="<">less than</option>
+                        <option value=">">greater than</option>
+                        <option value="=">equal to</option>
+                        <option value=">=">greater than equal to</option>
+                      </select>
+                      <input
+                        type="text"
+                        name="value"
+                        value={tableData.range.numeric_unbound.value}
+                        onChange={(e) =>
+                          handleTableDataChange({
+                            range: {
+                              ...tableData.range,
+                              numeric_unbound: {
+                                ...tableData.range.numeric_unbound,
+                                value: e.target.value,
+                              },
+                            },
+                          })
+                        }
+                        aria-label="Value"
+                        className="w-full border rounded px-3 py-1.5 text-sm"
+                        placeholder="Value"
+                      />
+                    </div>
+                  </div>
+                )}
+                {tableData.field === "multiple_range" && (
+                  <div>
+                    <label className="text-sm text-gray-600 mb-1">
+                      Multiple Range:
+                    </label>
+                    <textarea
+                      name="multipleRange"
+                      value={tableData.range.multiple_range}
+                      onChange={(e) =>
+                        handleTableDataChange({
+                          range: {
+                            ...tableData.range,
+                            multiple_range: e.target.value,
+                          },
+                        })
+                      }
+                      aria-label="Multiple Range"
+                      className="w-full border rounded px-3 py-1.5 text-sm"
+                    />
+                  </div>
+                )}
+                <div className="flex gap-2">
+                  <button className="px-3 py-1.5 text-blue-500 border border-blue-500 rounded text-sm hover:bg-blue-50">
+                    Add Field
+                  </button>
+                  <button className="px-3 py-1.5 text-blue-500 border border-blue-500 rounded text-sm hover:bg-blue-50">
+                    Add Formula
+                  </button>
+                </div>
+              </>
+            )}
           </div>
 
           {/* Dynamic Editor Section */}
