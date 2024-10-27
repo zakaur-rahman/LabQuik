@@ -1,53 +1,85 @@
 import React, { useState } from 'react';
 import { Trash2, GripVertical } from 'lucide-react';
 
-interface TestField {
+// Use the TableData interface
+interface TableData {
   name: string;
   field: string;
   units: string;
-  range: string;
   formula: string;
+  testMethod: string;
+  range: {
+    numeric: {
+      minRange: string;
+      maxRange: string;
+    };
+    text: string;
+    numeric_unbound: {
+      comparisonOperator: string;
+      value: string;
+    };
+    multiple_range: string;
+    custom:{
+      options:string[];
+      defaultOption:string;
+    };
+  };
 }
 
 interface TestFieldsTableProps {
-  testFields: TestField[];
+  testFields: TableData[];
   onDragEnd: (result: { source: { index: number }, destination: { index: number } }) => void;
   onDelete?: (index: number) => void;
+  onRowSelect: (field: TableData | null, index: number) => void;
+  selectedRowIndex: number | null;
 }
 
-const TableRows = React.memo(({ 
+const TableRows: React.FC<{
+  fields: TableData[];
+  onDelete?: (index: number) => void;
+  onDragStart: (e: React.DragEvent, index: number) => void;
+  onDragOver: (e: React.DragEvent, index: number) => void;
+  onDragEnd: () => void;
+  onRowSelect: (field: TableData | null, index: number) => void;
+  selectedRowIndex: number | null;
+}> = React.memo(({ 
   fields, 
   onDelete,
   onDragStart,
   onDragOver,
   onDragEnd,
-}: { 
-  fields: TestField[];
-  onDelete?: (index: number) => void;
-  onDragStart: (e: React.DragEvent, index: number) => void;
-  onDragOver: (e: React.DragEvent, index: number) => void;
-  onDragEnd: () => void;
+  onRowSelect,
+  selectedRowIndex,
 }) => (
   <>
     {fields.map((field, index) => (
       <tr
-        key={field.name}
+        key={`${field.name}-${index}`}
         draggable
         onDragStart={(e) => onDragStart(e, index)}
         onDragOver={(e) => onDragOver(e, index)}
         onDragEnd={onDragEnd}
-        className="border-b hover:bg-gray-50"
+        className={`border-b hover:bg-gray-50 ${selectedRowIndex === index ? 'bg-blue-100' : ''}`}
       >
         <td className="p-2 w-8 cursor-grab">
           <GripVertical className="w-4 h-4 text-gray-400" />
         </td>
         <td className="p-2 w-8">
-          <input type="checkbox" className="rounded" />
+          <input 
+            type="checkbox" 
+            className="rounded"
+            checked={selectedRowIndex === index}
+            onChange={() => onRowSelect(selectedRowIndex === index ? null : field, index)}
+          />
         </td>
         <td className="p-2 min-w-[120px]">{field.name}</td>
         <td className="p-2 min-w-[120px]">{field.field}</td>
         <td className="p-2 min-w-[100px]">{field.units}</td>
-        <td className="p-2 min-w-[100px]">{field.range}</td>
+        <td className="p-2 min-w-[100px]">
+          {field.range.numeric.minRange && field.range.numeric.maxRange
+            ? `${field.range.numeric.minRange} - ${field.range.numeric.maxRange}`
+            : field.range.text || `${field.range.numeric_unbound.comparisonOperator} ${field.range.numeric_unbound.value}` || field.range.multiple_range}
+        </td>
         <td className="p-2 w-20">
           <input
             type="checkbox"
@@ -76,6 +108,8 @@ export const TestFieldsTable: React.FC<TestFieldsTableProps> = ({
   testFields,
   onDragEnd,
   onDelete,
+  onRowSelect,
+  selectedRowIndex,
 }) => {
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
@@ -126,6 +160,8 @@ export const TestFieldsTable: React.FC<TestFieldsTableProps> = ({
             onDragStart={handleDragStart}
             onDragOver={handleDragOver}
             onDragEnd={handleDragEnd}
+            onRowSelect={onRowSelect}
+            selectedRowIndex={selectedRowIndex}
           />
         </tbody>
       </table>
