@@ -176,6 +176,7 @@ const CustomDropdown: React.FC<DropdownProps> = ({
       <div className="mt-2">
         <label className="text-sm text-gray-600 mb-1">Default Option:</label>
         <select
+          title="Default Option"
           value={defaultOption}
           onChange={handleDefaultOptionChange}
           className="w-full border rounded px-3 py-1.5 text-sm"
