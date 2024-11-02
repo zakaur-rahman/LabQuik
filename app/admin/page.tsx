@@ -68,7 +68,17 @@ const Page = () => {
         const testId = searchParams?.get('testId');
         return testId ? <EditTest testId={parseInt(testId, 10)} /> : null;
       case 'ViewReport':
-        return patientId ? <ViewReport patientId={patientId} onClose={() => handleComponentChange('PatientReport')} /> : null;
+        return patientId ? (
+          <ViewReport 
+            patient={{ 
+              id: patientId,
+              details: { name: '', age: '', gender: '' },
+              doctor: '',
+              status: ''
+            }} 
+            onClose={() => handleComponentChange('PatientReport')} 
+          />
+        ) : null;
       default:
         return <PatientRegister />;
     }

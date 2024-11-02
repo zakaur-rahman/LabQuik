@@ -5,6 +5,10 @@ import { TestFieldsTable } from "./TestFieldsTable";
 import { MultipleFieldsEditor } from "./MultipleFieldsEditor";
 import { TextEditor } from "./TextEditor";
 import CustomDropdown from "./CustomDropdown";
+import CustomModal from "@/app/utils/CustomModal";
+import AddComment from "../common/AddComment";
+import ViewComment from "../common/ViewComment";
+import Interpretation from "../common/Interpretation";
 
 type EditorType = "Single field" | "Multiple fields" | "Text Editor";
 
@@ -89,6 +93,15 @@ const EditTestPage: React.FC<EditTestProps> = ({ testId }) => {
   const [testData, setTestData] = useState<TestData>(initialTestData);
   const [testFields, setTestFields] = useState<TableData[]>([]);
   const [selectedRowIndex, setSelectedRowIndex] = useState<number | null>(null);
+  const [isFormula, setIsFormula] = useState<boolean>(false);
+  const [isCommentModalOpen, setIsCommentModalOpen] = useState(false);
+  const [isViewCommentModalOpen, setIsViewCommentModalOpen] = useState(false);
+  const [isInterpretationModalOpen, setIsInterpretationModalOpen] = useState(false);
+
+  const [comments, setComments] = useState([
+    { id: 1, text: "hello" },
+    // Add more comments as needed
+  ]);
 
   const handleTableDataChange = (newData: Partial<TableData>) => {
     setTableData((prevData) => {
@@ -121,7 +134,10 @@ const EditTestPage: React.FC<EditTestProps> = ({ testId }) => {
         };
 
         // Reset range and units in testFields when field type changes
-        if (newData.field && newData.field !== prevFields[selectedRowIndex].field) {
+        if (
+          newData.field &&
+          newData.field !== prevFields[selectedRowIndex].field
+        ) {
           updatedFields[selectedRowIndex] = {
             ...updatedFields[selectedRowIndex],
             units: "",
@@ -166,11 +182,18 @@ const EditTestPage: React.FC<EditTestProps> = ({ testId }) => {
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
   ) => {
     const { name, value } = e.target;
-    handleTestDataChange({ [name]: value });
-
-    if (name === "testName") {
-      handleTableDataChange({ name: value });
+    
+    // Handle test data changes (including testName)
+    if (name === "testName" || name === "department" || name === "cost" || name === "testCode" || 
+        name === "sex" || name === "sampleType" || name === "age" || name === "suffix" || name === "type") {
+      handleTestDataChange({ [name]: value });
     }
+  };
+
+  // Separate handler for table data name
+  const handleTableNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { value } = e.target;
+    handleTableDataChange({ name: value });
   };
 
   const handleRowSelect = (field: TableData | null, index: number) => {
@@ -182,6 +205,7 @@ const EditTestPage: React.FC<EditTestProps> = ({ testId }) => {
       setTableData(initialTableData);
       setTestData((prevData) => ({ ...prevData, testName: "" }));
       setSelectedRowIndex(null);
+      setIsFormula(false);
     }
   };
 
@@ -189,6 +213,7 @@ const EditTestPage: React.FC<EditTestProps> = ({ testId }) => {
     setTestData(initialTestData);
     setTableData(initialTableData);
     setSelectedRowIndex(null);
+    setIsFormula(false);
   };
 
   const handleSubmit = () => {
@@ -217,10 +242,12 @@ const EditTestPage: React.FC<EditTestProps> = ({ testId }) => {
         return (
           <TestFieldsTable
             testFields={testFields}
-            onDragEnd={onDragEnd}
+            onDragEnd={() => onDragEnd}
             onDelete={handleDeleteField}
             onRowSelect={handleRowSelect}
             selectedRowIndex={selectedRowIndex}
+            isFormula={isFormula}
+            setFormula={setFormula}
           />
         );
       case "Multiple fields":
@@ -230,6 +257,34 @@ const EditTestPage: React.FC<EditTestProps> = ({ testId }) => {
       default:
         return null;
     }
+  };
+
+  const setFormula = (value: boolean) => {
+    setIsFormula(value);
+  };
+
+  const handleAddFormula = () => {
+    console.log("Adding formula for row:", selectedRowIndex);
+  };
+
+  const handleCommentSave = (comment: string) => {
+    console.log("Saving comment:", comment);
+    setIsCommentModalOpen(false);
+  };
+
+  const handleEditComment = (id: number) => {
+    console.log("Editing comment:", id);
+    // Add your edit logic here
+  };
+
+  const handleRemoveComment = (id: number) => {
+    console.log("Removing comment:", id);
+    setComments(comments.filter(comment => comment.id !== id));
+  };
+
+  const handleInterpretationSave = (interpretationData: any) => {
+    console.log("Saving interpretation:", interpretationData);
+    setIsInterpretationModalOpen(false);
   };
 
   return (
@@ -248,10 +303,16 @@ const EditTestPage: React.FC<EditTestProps> = ({ testId }) => {
             <button className="px-3 py-1.5 text-blue-500 border border-blue-500 rounded text-sm hover:bg-blue-50">
               Report preview
             </button>
-            <button className="px-3 py-1.5 text-blue-500 border border-blue-500 rounded text-sm hover:bg-blue-50">
+            <button 
+              onClick={() => setIsViewCommentModalOpen(true)}
+              className="px-3 py-1.5 text-blue-500 border border-blue-500 rounded text-sm hover:bg-blue-50"
+            >
               View Comments
             </button>
-            <button className="px-3 py-1.5 bg-blue-500 text-white rounded text-sm hover:bg-blue-600">
+            <button 
+              onClick={() => setIsCommentModalOpen(true)}
+              className="px-3 py-1.5 bg-blue-500 text-white rounded text-sm hover:bg-blue-600"
+            >
               <PlusIcon className="inline-block w-4 h-4 mr-1" />
               Add Comment
             </button>
@@ -381,7 +442,10 @@ const EditTestPage: React.FC<EditTestProps> = ({ testId }) => {
               className="w-full border rounded px-3 py-1.5 text-sm"
             />
           </div>
-          <button className="px-4 py-1.5 bg-blue-500 text-white rounded text-sm hover:bg-blue-600">
+          <button 
+            onClick={() => setIsInterpretationModalOpen(true)}
+            className="px-4 py-1.5 bg-blue-500 text-white rounded text-sm hover:bg-blue-600"
+          >
             View Interpretation
           </button>
         </div>
@@ -412,9 +476,7 @@ const EditTestPage: React.FC<EditTestProps> = ({ testId }) => {
                     type="text"
                     name="name"
                     value={tableData.name}
-                    onChange={(e) =>
-                      handleTableDataChange({ name: e.target.value })
-                    }
+                    onChange={handleTableNameChange}
                     aria-label="Name"
                     className="w-full border rounded px-3 py-1.5 text-sm"
                   />
@@ -637,7 +699,9 @@ const EditTestPage: React.FC<EditTestProps> = ({ testId }) => {
                   <button className="px-3 py-1.5 text-blue-500 border border-blue-500 rounded text-sm hover:bg-blue-50">
                     Add Field
                   </button>
-                  <button className="px-3 py-1.5 text-blue-500 border border-blue-500 rounded text-sm hover:bg-blue-50">
+                  <button 
+                    onClick={() => handleAddFormula()}
+                    className={`px-3 py-1.5 text-blue-500 border border-blue-500 rounded text-sm hover:bg-blue-50 ${isFormula ? "":"hidden"}`}>
                     Add Formula
                   </button>
                 </div>
@@ -649,6 +713,46 @@ const EditTestPage: React.FC<EditTestProps> = ({ testId }) => {
           {renderEditor()}
         </div>
       </div>
+
+      <CustomModal
+        className="w-full max-w-4xl"
+        open={isInterpretationModalOpen}
+        setOpen={setIsInterpretationModalOpen}
+        component={(props) => (
+          <Interpretation
+            onClose={() => setIsInterpretationModalOpen(false)}
+            onSave={handleInterpretationSave}
+            {...props}
+          />
+        )}
+      />
+
+      <CustomModal
+        className="w-full max-w-3xl"
+        open={isViewCommentModalOpen}
+        setOpen={setIsViewCommentModalOpen}
+        component={(props) => (
+          <ViewComment
+            comments={comments}
+            onClose={() => setIsViewCommentModalOpen(false)}
+            onEdit={handleEditComment}
+            onRemove={handleRemoveComment}
+            {...props}
+          />
+        )}
+      />
+
+      <CustomModal
+        open={isCommentModalOpen}
+        setOpen={setIsCommentModalOpen}
+        component={(props) => (
+          <AddComment
+            onClose={() => setIsCommentModalOpen(false)}
+            onSave={handleCommentSave}
+            {...props}
+          />
+        )}
+      />
     </div>
   );
 };
