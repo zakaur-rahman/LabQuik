@@ -32,6 +32,8 @@ interface TestFieldsTableProps {
   onDelete?: (index: number) => void;
   onRowSelect: (field: TableData | null, index: number) => void;
   selectedRowIndex: number | null;
+  setFormula: (isFormula: boolean) => void;
+  isFormula: boolean;
 }
 
 const TableRows: React.FC<{
@@ -42,6 +44,8 @@ const TableRows: React.FC<{
   onDragEnd: () => void;
   onRowSelect: (field: TableData | null, index: number) => void;
   selectedRowIndex: number | null;
+  setFormula: (formula: boolean) => void;
+  isFormula: boolean;
 }> = React.memo(({ 
   fields, 
   onDelete,
@@ -50,6 +54,8 @@ const TableRows: React.FC<{
   onDragEnd,
   onRowSelect,
   selectedRowIndex,
+  setFormula,
+  isFormula,
 }) => (
   <>
     {fields.map((field, index) => (
@@ -84,8 +90,13 @@ const TableRows: React.FC<{
           <input
             type="checkbox"
             className="rounded"
-            checked={!!field.formula}
-            readOnly
+            checked={selectedRowIndex === index && isFormula}
+            onChange={() => {
+              if (selectedRowIndex === index) {
+                setFormula(!isFormula);
+              }
+            }}
+            disabled={selectedRowIndex !== index}
           />
         </td>
         <td className="p-2 w-8">
@@ -110,6 +121,8 @@ export const TestFieldsTable: React.FC<TestFieldsTableProps> = ({
   onDelete,
   onRowSelect,
   selectedRowIndex,
+  isFormula,
+  setFormula,
 }) => {
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
@@ -138,6 +151,11 @@ export const TestFieldsTable: React.FC<TestFieldsTableProps> = ({
     setDragOverIndex(null);
   };
 
+  const handleRowSelect = (field: TableData | null, index: number) => {
+    onRowSelect(field, index);
+    setFormula(false); // Reset formula when selecting/deselecting a row
+  };
+
   return (
     <div className="flex-1 border overflow-x-auto">
       <table className="w-full border-collapse">
@@ -160,8 +178,10 @@ export const TestFieldsTable: React.FC<TestFieldsTableProps> = ({
             onDragStart={handleDragStart}
             onDragOver={handleDragOver}
             onDragEnd={handleDragEnd}
-            onRowSelect={onRowSelect}
+            onRowSelect={handleRowSelect}
             selectedRowIndex={selectedRowIndex}
+            setFormula={setFormula}
+            isFormula={isFormula}
           />
         </tbody>
       </table>
