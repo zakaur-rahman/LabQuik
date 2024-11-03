@@ -10,7 +10,9 @@ import Header from "../components/header/Header";
 import { useRouter, useSearchParams } from 'next/navigation';
 import TestList from "../components/tests/TestList";
 import ViewReport from "../components/patient/update-report/ViewReport";
-import EditTest from "../components/tests/EditTest";
+import EditTest from "../components/tests/edit/EditTest";
+import CreateNewTest from '../components/tests/createTest/CreateNewTest';
+import EditTestPage from '../components/tests/edit/EditTest';
 
 // Dynamically import SideBar with SSR disabled
 const SideBar = dynamic(() => import("../components/admin/sidebar/SideBar"), { ssr: false });
@@ -79,6 +81,8 @@ const Page = () => {
             onClose={() => handleComponentChange('PatientReport')} 
           />
         ) : null;
+      case 'CreateNewTest':
+        return <CreateNewTest />;
       default:
         return <PatientRegister />;
     }

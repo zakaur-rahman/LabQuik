@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Search, ListPlus, Edit, RefreshCw, Plus } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import CreateNewTest from './createTest/CreateNewTest';
 
 const TestList = () => {
   const router = useRouter();
@@ -68,6 +69,9 @@ const TestList = () => {
   const handleEditTest = (testId: number) => {
     router.push(`/admin?component=EditTest&testId=${testId}`);
   };
+  const handleNewTest = () => {
+    router.push(`/admin?component=CreateNewTest`);
+  };
 
   return (
     <div className="p-6 w-full text-black mx-auto space-y-6">
@@ -100,7 +104,10 @@ const TestList = () => {
             <RefreshCw className="h-4 w-4 mr-2" />
             Mass Update Price List
           </button>
-          <button className="flex items-center px-3 py-2 text-sm bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors">
+          <button 
+            className="flex items-center px-3 py-2 text-sm bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors"
+            onClick={handleNewTest}
+          >
             <Plus className="h-4 w-4 mr-2" />
             New Test
           </button>
