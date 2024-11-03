@@ -1,14 +1,14 @@
 import React, { useState, useEffect } from "react";
 import { Trash2Icon, PlusIcon, PencilIcon } from "lucide-react";
 import { DropResult } from "@hello-pangea/dnd";
-import { TestFieldsTable } from "./TestFieldsTable";
-import { MultipleFieldsEditor } from "./MultipleFieldsEditor";
-import { TextEditor } from "./TextEditor";
-import CustomDropdown from "./CustomDropdown";
+import { TestFieldsTable } from "../TestFieldsTable";
+import { MultipleFieldsEditor } from "../MultipleFieldsEditor";
+import { TextEditor } from "../TextEditor";
+import CustomDropdown from "../CustomDropdown";
 import CustomModal from "@/app/utils/CustomModal";
-import AddComment from "../common/AddComment";
-import ViewComment from "../common/ViewComment";
-import Interpretation from "../common/Interpretation";
+import AddComment from "../../common/AddComment";
+import ViewComment from "../../common/ViewComment";
+import Interpretation from "../../common/Interpretation";
 
 type EditorType = "Single field" | "Multiple fields" | "Text Editor";
 
@@ -73,8 +73,8 @@ const initialTableData: TableData = {
 };
 
 const initialTestData: TestData = {
-  department: "MOLECULAR BIOLOGY",
-  testName: "Biology Test",
+  department: "",
+  testName: "",
   cost: 0,
   testCode: "",
   sex: "Male",
@@ -88,7 +88,7 @@ interface EditTestProps {
   testId: number;
 }
 
-const EditTestPage: React.FC<EditTestProps> = ({ testId }) => {
+const CreateNewTest: React.FC = () => {
   const [tableData, setTableData] = useState<TableData>(initialTableData);
   const [testData, setTestData] = useState<TestData>(initialTestData);
   const [testFields, setTestFields] = useState<TableData[]>([]);
@@ -303,7 +303,7 @@ const EditTestPage: React.FC<EditTestProps> = ({ testId }) => {
             <button className="px-3 py-1.5 text-blue-500 border border-blue-500 rounded text-sm hover:bg-blue-50">
               Report preview
             </button>
-            <button 
+            {/* <button 
               onClick={() => setIsViewCommentModalOpen(true)}
               className="px-3 py-1.5 text-blue-500 border border-blue-500 rounded text-sm hover:bg-blue-50"
             >
@@ -315,7 +315,7 @@ const EditTestPage: React.FC<EditTestProps> = ({ testId }) => {
             >
               <PlusIcon className="inline-block w-4 h-4 mr-1" />
               Add Comment
-            </button>
+            </button> */}
             <button
               onClick={handleSubmit}
               className="px-3 py-1.5 bg-blue-500 text-white rounded text-sm hover:bg-blue-600 flex items-center"
@@ -757,4 +757,4 @@ const EditTestPage: React.FC<EditTestProps> = ({ testId }) => {
   );
 };
 
-export default EditTestPage;
+export default CreateNewTest;
