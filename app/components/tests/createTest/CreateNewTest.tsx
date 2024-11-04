@@ -84,9 +84,7 @@ const initialTestData: TestData = {
   type: "Single field",
 };
 
-interface EditTestProps {
-  testId: number;
-}
+
 
 const CreateNewTest: React.FC = () => {
   const [tableData, setTableData] = useState<TableData>(initialTableData);
@@ -292,7 +290,7 @@ const CreateNewTest: React.FC = () => {
       {/* Header Section */}
       <div className="mb-8">
         <div className="flex justify-between items-center mb-6">
-          <h1 className="text-lg font-medium text-gray-800">Edit Test</h1>
+          <h1 className="text-lg font-medium text-gray-800">New Test</h1>
           <div className="flex items-center gap-2">
             <button
               onClick={handleReset}
