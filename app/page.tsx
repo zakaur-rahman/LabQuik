@@ -1,10 +1,13 @@
 import React from 'react'
+import LoginComponent from './components/auth/LoginSignUp'
 
 type Props = {}
 
 const page = (props: Props) => {
   return (
-    <div>page</div>
+    <div>
+      <LoginComponent />
+    </div>
   )
 }
 
