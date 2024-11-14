@@ -3,7 +3,7 @@ import { userLoggedIn, userLoggedOut, userRegistration } from "./authSlice";
 
 type RegistrationResponse = {
   message: string;
-  activationToken: string;
+  token: string;
 };
 
 type RegistrationData = {};
@@ -12,7 +12,7 @@ export const authApi = apiSlice.injectEndpoints({
   endpoints: (builder) => ({
     register: builder.mutation<RegistrationResponse, RegistrationData>({
       query: (data) => ({
-        url: "registration",
+        url: "/labs/send-verification-code",
         method: "POST",
         body: data,
         credentials: "include" as const,
@@ -23,7 +23,7 @@ export const authApi = apiSlice.injectEndpoints({
           const result = await queryFulfilled;
           dispatch(
             userRegistration({
-              token: result.data.activationToken,
+              verificationToken: result.data.token,
             })
           );
         } catch (error: any) {
@@ -33,19 +33,54 @@ export const authApi = apiSlice.injectEndpoints({
     }),
 
     activation: builder.mutation({
-      query: ({ activation_token, activation_code }) => ({
-        url: "activate-user",
+      query: ({ token, otp }) => ({
+        url: "/labs/verify-otp",
         method: "POST",
         body: {
-          activation_token,
-          activation_code,
+          token,
+          otp,
         },
       }),
+      async onQueryStarted(arg, { queryFulfilled, dispatch }) {
+        try {
+          const result = await queryFulfilled;
+          dispatch(
+            userLoggedIn({
+              accessToken: result.data.token,
+              user: result.data.user,
+            })
+          );
+        } catch (error: any) {
+          console.log(error);
+        }
+      },
+    }),
+    mobileLogin: builder.mutation<RegistrationResponse, RegistrationData>({
+      query: (data) => ({
+        url: "/labs/phone-otp-login",
+        method: "POST",
+        body: data,
+        credentials: "include" as const,
+      }),
+
+      async onQueryStarted(arg, { queryFulfilled, dispatch }) {
+        try {
+          const result = await queryFulfilled;
+          console.log("result: ", result);
+          dispatch(
+            userRegistration({
+              verificationToken: result.data.token,
+            })
+          );
+        } catch (error: any) {
+          console.log(error);
+        }
+      },
     }),
 
-    login: builder.mutation({
+    emailLogin: builder.mutation({
       query: ({ email, password }) => ({
-        url: "login-user",
+        url: "/labs/email-password-login",
         method: "POST",
         body: { email, password },
         credentials: "include" as const,
@@ -61,12 +96,18 @@ export const authApi = apiSlice.injectEndpoints({
             })
           );
         } catch (error: any) {
-          console.log(error);
+          if (error.error?.status === 401) {
+            // Handle unauthorized
+            dispatch(userLoggedOut());
+          }
+          if (process.env.NODE_ENV === 'development') {
+            console.error(error);
+          }
         }
       },
     }),
 
-    socialAuth: builder.mutation({
+    /*  socialAuth: builder.mutation({
       query: ({ email, name, avatar }) => ({
         url: "social-auth",
         method: "POST",
@@ -87,7 +128,7 @@ export const authApi = apiSlice.injectEndpoints({
           console.log(error);
         }
       },
-    }),
+    }), */
     logOut: builder.query({
       query: () => ({
         url: "logout-user",
@@ -109,7 +150,8 @@ export const authApi = apiSlice.injectEndpoints({
 export const {
   useRegisterMutation,
   useActivationMutation,
-  useLoginMutation,
-  useSocialAuthMutation,
+  useEmailLoginMutation,
+  useMobileLoginMutation,
+  // useSocialAuthMutation,
   useLogOutQuery,
 } = authApi;
