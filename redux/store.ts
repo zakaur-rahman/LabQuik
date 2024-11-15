@@ -12,6 +12,8 @@ export const store = configureStore({
     getDefaultMiddleware().concat(apiSlice.middleware),
 });
 
+export type RootState = ReturnType<typeof store.getState>;
+
 //call the refresh token function on every page load
 export const initializeApp = async () => {
   try {
