@@ -26,6 +26,18 @@ const SelectMenu: React.FC<SelectMenuProps> = ({
   const inputRef = useRef<HTMLInputElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
 
+
+  console.log("options: ", options);
+  // Validate options
+  /* useEffect(() => {
+    if (!Array.isArray(options) || options.length === 0) {
+      console.error("Options must be a non-empty array.");
+      setFilteredOptions([]); // Clear options if invalid
+    } else {
+      setFilteredOptions(options);
+    }
+  }, [options]); */
+
   useEffect(() => {
     const filtered = options.filter(option =>
       option.name.toLowerCase().includes(searchQuery.toLowerCase())
@@ -81,7 +93,7 @@ const SelectMenu: React.FC<SelectMenuProps> = ({
             />
             <ChevronDown className="w-5 h-5 text-gray-400" />
           </div>
-          {isOpen && (
+          {isOpen && filteredOptions.length > 0 && (
             <div className="absolute z-10 w-full mt-1 bg-white border rounded shadow-lg">
               <ul className="max-h-60 overflow-auto">
                 {filteredOptions.map((option) => (
@@ -97,6 +109,11 @@ const SelectMenu: React.FC<SelectMenuProps> = ({
                   </li>
                 ))}
               </ul>
+            </div>
+          )}
+          {isOpen && filteredOptions.length === 0 && (
+            <div className="absolute z-10 w-full mt-1 bg-white border rounded shadow-lg">
+              <div className="px-3 py-2 text-gray-500">No options available</div>
             </div>
           )}
         </div>

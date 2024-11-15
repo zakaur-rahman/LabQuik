@@ -1,46 +1,54 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { X } from "lucide-react";
-
+import * as Yup from "yup";
+import { useAddSampleCollectorMutation } from "@/redux/features/patient/addSampleCollector";
+import { useFormik } from "formik";
+import { toast } from "react-hot-toast";
 interface SampleCollectorProps {
   onClose: () => void;
-  onSave: (data: SampleCollectorData) => void;
 }
 
-interface SampleCollectorData {
-  name: string;
-  gender: "male" | "female" | "other";
-  phone: string;
-  email: string;
-}
+const schema = Yup.object().shape({
+  name: Yup.string().required("Please enter your name!"),
+  gender: Yup.string().required("Please select your gender!"),
+  phone: Yup.string().required("Please enter your phone number!"),
+  email: Yup.string().email("Invalid email").required("Please enter your email!"),
+});
 
 const SampleCollector: React.FC<SampleCollectorProps> = ({
   onClose,
-  onSave,
 }) => {
-  const [formData, setFormData] = useState<SampleCollectorData>({
-    name: "",
-    gender: "male",
-    phone: "",
-    email: "",
+ 
+
+  const [addSampleCollector, { isSuccess, error , isLoading}] = useAddSampleCollectorMutation();
+
+  const formik = useFormik({
+    initialValues: {
+      name: "",
+      gender: "male",
+      phone: "",
+      email: "",
+    },
+    validationSchema: schema,
+    onSubmit: async (values) => {
+      await addSampleCollector(values);
+    },
   });
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
-  };
+  useEffect(() => {
+    if (isSuccess) {
+      toast.success("Sample Collector added successfully!");
+      onClose();
+    }
+    if (error) {
+      const errorData = error as any;
+      console.log("errorData: ", errorData);
+      toast.error(errorData.error);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [error, isSuccess]);
 
-  const handleGenderChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFormData((prev) => ({
-      ...prev,
-      gender: e.target.value as "male" | "female" | "other",
-    }));
-  };
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    onSave(formData);
-    onClose();
-  };
+  const { errors, touched, values, handleChange, handleSubmit } = formik;
 
   return (
     <div className="bg-transparent p-2 rounded text-[#000000] max-w-md w-full">
@@ -66,11 +74,14 @@ const SampleCollector: React.FC<SampleCollectorProps> = ({
             type="text"
             id="name"
             name="name"
-            value={formData.name}
-            onChange={handleInputChange}
+            value={values.name}
+            onChange={handleChange}
             className="w-full px-3 py-2 border rounded"
             required
           />
+          {touched.name && errors.name && (
+            <p className="text-red-500 text-sm mt-1">{errors.name}</p>
+          )}
         </div>
         <div className="mb-4">
           <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -83,14 +94,17 @@ const SampleCollector: React.FC<SampleCollectorProps> = ({
                   type="radio"
                   name="gender"
                   value={gender}
-                  checked={formData.gender === gender}
-                  onChange={handleGenderChange}
+                  checked={values.gender === gender}
+                  onChange={handleChange}
                   className="mr-2"
                 />
                 {gender}
               </label>
             ))}
           </div>
+          {touched.gender && errors.gender && (
+            <p className="text-red-500 text-sm mt-1">{errors.gender}</p>
+          )}
         </div>
         <div className="mb-4">
           <label
@@ -103,11 +117,14 @@ const SampleCollector: React.FC<SampleCollectorProps> = ({
             type="tel"
             id="phone"
             name="phone"
-            value={formData.phone}
-            onChange={handleInputChange}
+            value={values.phone}
+            onChange={handleChange}
             className="w-full px-3 py-2 border rounded"
             required
           />
+          {touched.phone && errors.phone && (
+            <p className="text-red-500 text-sm mt-1">{errors.phone}</p>
+          )}
         </div>
         <div className="mb-4">
           <label
@@ -120,17 +137,20 @@ const SampleCollector: React.FC<SampleCollectorProps> = ({
             type="email"
             id="email"
             name="email"
-            value={formData.email}
-            onChange={handleInputChange}
+            value={values.email}
+            onChange={handleChange}
             className="w-full px-3 py-2 border rounded"
           />
-        </div>
+          {touched.email && errors.email && (
+            <p className="text-red-500 text-sm mt-1">{errors.email}</p>
+          )}
+          </div>
         <div className="flex justify-end">
           <button
             type="submit"
             className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
           >
-            Save
+            {isLoading ? "Adding..." : "Add"}
           </button>
         </div>
       </form>
