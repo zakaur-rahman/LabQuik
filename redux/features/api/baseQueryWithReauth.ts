@@ -15,7 +15,7 @@ const baseQueryWithReauth: BaseQueryFn = async (args, api, extraOptions) => {
       // Try refresh token
       const refreshResult = await baseQuery(
         { 
-          url: "users/token", 
+          url: "refresh-token", 
           method: "GET",
           credentials: "include" as const,
         },
