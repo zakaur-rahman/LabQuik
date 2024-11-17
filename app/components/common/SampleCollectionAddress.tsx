@@ -5,7 +5,6 @@ import * as yup from "yup";
 import { useFormik } from "formik";
 import { toast } from "react-hot-toast";
 interface SampleCollectionAddressProps {
-  onSave: (address: string) => void;
   onClose: () => void;
 }
 const schema = yup.object({
@@ -13,7 +12,6 @@ const schema = yup.object({
 });
 
 const SampleCollectionAddress: React.FC<SampleCollectionAddressProps> = ({
-  onSave,
   onClose,
 }) => {
   
