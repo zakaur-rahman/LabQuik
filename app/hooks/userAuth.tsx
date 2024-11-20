@@ -1,9 +1,9 @@
 import { useSelector } from "react-redux";
 export default function UserAuth() {
-    const { user } = useSelector((state: any) => state.auth);
-    if (user) {
-        return true
+    const {lab} = useSelector((state: any) => state.auth);
+    if (lab) {
+        return true;
     } else {
-        return false
+        return false;
     }
 }
