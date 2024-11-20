@@ -1,56 +1,50 @@
-import React, { useState, useRef } from 'react';
-
-interface TestItem {
-  id: number;
-  description: string;
-  amount: number;
-}
+import React, { useState, useRef, useMemo } from "react";
+import { useSelector } from "react-redux";
 
 interface InvoiceProps {
-  billId: string;
-  billDate: string;
-  patientName: string;
-  age: number;
-  gender: string;
-  referredBy: string;
-  paymentType: string;
-  tests: TestItem[];
-  discount: number;
-  paymentMade: number;
-  clinicName: string;
-  clinicAddress: string;
-  clinicPhone: string;
-  clinicEmail: string;
+  invoiceData: {
+    firstName: string;
+    lastName: string;
+    age: number;
+    ageType: string;
+    gender: string;
+    bill: {
+      billId: string;
+      createdAt: string;
+      paymentMode: string;
+      tests: Array<{
+        id: string;
+        name: string;
+        price: number;
+      }>;
+      total: number;
+      homeCollectionCharge: number;
+      discount: number;
+      grandTotal: number;
+      advancePaid: number;
+      due: number;
+    };
+    organisation?: {
+      name: string;
+    };
+  };
+  onClose: () => void;
 }
 
-const defaultTests: TestItem[] = [
-  { id: 1, description: 'Vitamin D3', amount: 30.00 },
-  { id: 2, description: 'ULTRASONOGRAPHY OF ARTERIAL SYSTEM OF BOTH LOWERLIMBS PERFORMED', amount: 50.00 },
-  { id: 3, description: 'Tbc', amount: 50.00 }
-];
-
-const MedicalInvoice: React.FC<InvoiceProps> = ({
-  billId = 'RE6',
-  billDate = '25/10/2024 11:41 AM',
-  patientName = 'Mr. Ahmad Khan',
-  age = 21,
-  gender = 'Male',
-  referredBy = 'Moin Ahmad',
-  paymentType = 'Cash',
-  tests = defaultTests,
-  discount = 8,
-  paymentMade = 12.00,
-  clinicName = 'Arsalan Medical Center',
-  clinicAddress = '123 Medical Plaza, City',
-  clinicPhone = '7520345340',
-  clinicEmail = 'salarfateh97@gmail.com'
-}) => {
+const Invoice: React.FC<InvoiceProps> = ({ invoiceData, onClose }) => {
   const [showHeaderFooter, setShowHeaderFooter] = useState(true);
   const printAreaRef = useRef<HTMLDivElement>(null);
+  const { lab } = useSelector((state: any) => state.auth);
 
-  const subtotal = tests.reduce((sum, test) => sum + test.amount, 0);
-  const total = subtotal - discount;
-  const balanceDue = total - paymentMade;
+  // Memoize calculations
+  const formattedAmount = useMemo(() => {
+    return new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: "INR",
+    })
+      .format(invoiceData.bill?.grandTotal)
+      .replace("₹", "");
+  }, [invoiceData.bill?.grandTotal]);
 
   const handlePrint = () => {
     const printContent = printAreaRef.current?.innerHTML;
@@ -85,7 +79,7 @@ const MedicalInvoice: React.FC<InvoiceProps> = ({
       }
     `;
 
-    const printWindow = window.open('', '_blank');
+    const printWindow = window.open("", "_blank");
     if (printWindow) {
       printWindow.document.open();
       printWindow.document.write(`
@@ -127,19 +121,28 @@ const MedicalInvoice: React.FC<InvoiceProps> = ({
             <label htmlFor="headerFooter">Print with Header & Footer</label>
           </div>
           <div className="flex space-x-4">
-            <button className="px-4 py-2 border border-gray-300 rounded hover:bg-gray-50">Send</button>
-            <button onClick={handlePrint} className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600">Print</button>
+            <button className="px-4 py-2 border border-gray-300 rounded hover:bg-gray-50">
+              Send
+            </button>
+            <button
+              onClick={handlePrint}
+              className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+            >
+              Print
+            </button>
           </div>
         </div>
       </div>
 
       <div ref={printAreaRef} className="bg-white border border-gray-300 p-8">
-        <div className={`mb-8 text-center ${!showHeaderFooter ? 'invisible' : ''}`}>
-          <h1 className="text-2xl font-bold mb-2">{clinicName}</h1>
-          <p className="text-gray-600 mb-1">{clinicAddress}</p>
+        <div
+          className={`mb-8 text-center ${!showHeaderFooter ? "invisible" : ""}`}
+        >
+          <h1 className="text-2xl font-bold mb-2">{lab.labName}</h1>
+          {lab.address && <p className="text-gray-600 mb-1">{lab.address}</p>}
           <div className="text-sm text-gray-500">
-            <p>Phone: {clinicPhone}</p>
-            <p>Email: {clinicEmail}</p>
+            <p>Phone: {lab.phone}</p>
+            <p>Email: {lab.email}</p>
           </div>
           <div className="border-b-2 border-gray-300 my-4"></div>
         </div>
@@ -148,14 +151,32 @@ const MedicalInvoice: React.FC<InvoiceProps> = ({
           <h1 className="text-2xl font-bold mb-4">Invoice-cum-receipt</h1>
           <div className="grid grid-cols-2 gap-4 mb-4">
             <div>
-              <p><span className="font-semibold">Bill Id:</span> {billId}</p>
-              <p><span className="font-semibold">Name:</span> {patientName}</p>
-              <p><span className="font-semibold">Age/Gender:</span> {age} Years/{gender}</p>
+              <p>
+                <span className="font-semibold">Bill Id:</span>{" "}
+                {invoiceData.bill?.billId}
+              </p>
+              <p>
+                <span className="font-semibold">Name:</span>{" "}
+                {invoiceData.firstName} {invoiceData.lastName}
+              </p>
+              <p>
+                <span className="font-semibold">Age/Gender:</span>{" "}
+                {invoiceData.age} {invoiceData.ageType}/{invoiceData.gender}
+              </p>
             </div>
             <div className="text-right">
-              <p><span className="font-semibold">Bill date:</span> {billDate}</p>
-              <p><span className="font-semibold">Referred By:</span> {referredBy}</p>
-              <p><span className="font-semibold">Payment Type:</span> {paymentType}</p>
+              <p>
+                <span className="font-semibold">Bill date:</span>{" "}
+                {invoiceData.bill?.createdAt}
+              </p>
+              <p>
+                <span className="font-semibold">Referred By:</span>{" "}
+                {invoiceData.organisation?.name}
+              </p>
+              <p>
+                <span className="font-semibold">Payment Mode:</span>{" "}
+                {invoiceData.bill?.paymentMode}
+              </p>
             </div>
           </div>
         </div>
@@ -169,26 +190,54 @@ const MedicalInvoice: React.FC<InvoiceProps> = ({
             </tr>
           </thead>
           <tbody>
-            {tests.map((test, index) => (
-              <tr key={test.id}>
+            {invoiceData.bill?.tests.map((test: any, index: number) => (
+              <tr key={index}>
                 <td className="border p-2">{index + 1}</td>
-                <td className="border p-2">{test.description}</td>
-                <td className="border p-2 text-right">₹{test.amount.toFixed(2)}</td>
+                <td className="border p-2">{test.name}</td>
+                <td className="border p-2 text-right">
+                  ₹{test.price.toFixed(2)}
+                </td>
               </tr>
             ))}
           </tbody>
         </table>
 
         <div className="space-y-2 text-right mb-6">
-          <p><span className="font-semibold">Sub Total:</span> ₹{subtotal.toFixed(2)}</p>
-          <p><span className="font-semibold">Discount:</span> -₹{discount.toFixed(2)}</p>
-          <p><span className="font-semibold">Total:</span> ₹{total.toFixed(2)}</p>
-          <p><span className="font-semibold">Payment Made:</span> ₹{paymentMade.toFixed(2)}</p>
-          <p className="text-lg font-bold">Balance Due: ₹{balanceDue.toFixed(2)}</p>
-          <p className="text-sm italic">Total In Words: {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'INR' }).format(total).replace('₹', '')} Only</p>
+          <p>
+            <span className="font-semibold">Sub Total:</span> ₹
+            {invoiceData.bill?.total.toFixed(2)}
+          </p>
+          {invoiceData.bill?.homeCollectionCharge && (
+            <p>
+              <span className="font-semibold">Home Collection:</span> ₹
+              {invoiceData.bill?.homeCollectionCharge.toFixed(2)}
+            </p>
+          )}
+          {invoiceData.bill?.discount > 0 && (
+            <p>
+              <span className="font-semibold">Discount:</span> -₹
+              {invoiceData.bill?.discount.toFixed(2)}
+            </p>
+          )}
+          <p>
+            <span className="font-semibold">Total:</span> ₹
+            {invoiceData.bill?.grandTotal.toFixed(2)}
+          </p>
+          <p>
+            <span className="font-semibold">Payment Made:</span> ₹
+            {invoiceData.bill?.advancePaid.toFixed(2)}
+          </p>
+          <p className="text-lg font-bold">
+            Balance Due: ₹{invoiceData.bill?.due.toFixed(2)}
+          </p>
+          <p className="text-sm italic">
+            Total In Words:{" "}
+            {formattedAmount}
+            Only
+          </p>
         </div>
 
-        <div className={`mt-16 ${!showHeaderFooter ? 'invisible' : ''}`}>
+        <div className={`mt-16 ${!showHeaderFooter ? "invisible" : ""}`}>
           <div className="border-t-2 border-gray-300 pt-4">
             <div className="flex justify-between">
               <div>
@@ -201,7 +250,7 @@ const MedicalInvoice: React.FC<InvoiceProps> = ({
               </div>
             </div>
             <p className="text-center text-sm text-gray-500 mt-8">
-              Thank you for choosing {clinicName}
+              Thank you for choosing {lab.name}
             </p>
           </div>
         </div>
@@ -210,4 +259,4 @@ const MedicalInvoice: React.FC<InvoiceProps> = ({
   );
 };
 
-export default MedicalInvoice;
+export default Invoice;
