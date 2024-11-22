@@ -32,7 +32,6 @@ export const OTPInput: React.FC<OTPInputProps> = ({
 
 
 
-  console.log("token: ", token);
   const [invalidError, setInvalidError] = useState<boolean>(false);
   const [activation, { error, isSuccess }] = useActivationMutation();
 

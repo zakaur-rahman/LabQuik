@@ -2,7 +2,6 @@ import React, { useState, useEffect } from "react";
 import { Trash2Icon, PlusIcon, PencilIcon } from "lucide-react";
 import { DropResult } from "@hello-pangea/dnd";
 import { TestFieldsTable } from "../TestFieldsTable";
-import { MultipleFieldsEditor } from "../MultipleFieldsEditor";
 import { TextEditor } from "../TextEditor";
 import CustomDropdown from "../CustomDropdown";
 import CustomModal from "@/app/utils/CustomModal";
@@ -238,9 +237,9 @@ const EditTestPage: React.FC<EditTestProps> = ({ testId }) => {
 
   const renderEditor = () => {
     switch (testData.type) {
-      case "Single field":
+      /* case "Single field":
         return (
-          <TestFieldsTable
+           <TestFieldsTable
             testFields={testFields}
             onDragEnd={() => onDragEnd}
             onDelete={handleDeleteField}
@@ -248,10 +247,9 @@ const EditTestPage: React.FC<EditTestProps> = ({ testId }) => {
             selectedRowIndex={selectedRowIndex}
             isFormula={isFormula}
             setFormula={setFormula}
-          />
-        );
-      case "Multiple fields":
-        return <MultipleFieldsEditor />;
+          /> 
+        ); */
+      
       case "Text Editor":
         return <TextEditor />;
       default:

@@ -32,6 +32,37 @@ interface InvoiceData {
     items: Array<{ name: string; price: number }>;
 }
 
+interface FormValues {
+    patientId: string;
+    designation: string;
+    firstName: string;
+    lastName: string;
+    phoneNumber: string;
+    gender: string;
+    email: string;
+    age: number;
+    ageType: string;
+    address: string;
+    sampleCollector: { id: string; name: string };
+    organization: { id: string; name: string };
+    collectedAt: { id: string; name: string };
+}
+
+const initialFormValues: FormValues = {
+    patientId: "",
+    designation: "MR",
+    firstName: "",
+    lastName: "",
+    phoneNumber: "",
+    gender: "male",
+    email: "",
+    age: 0,
+    ageType: "year",
+    address: "",
+    sampleCollector: { id: "", name: "" },
+    organization: { id: "", name: "" },
+    collectedAt: { id: "", name: "" },
+};
 
 const schema = yup.object({
     patientId: yup.string().required("Patient ID is required"),
@@ -59,8 +90,7 @@ const schema = yup.object({
     bill: yup.object({}),
 });
 
-
-const PatientRegister = () => {
+const PatientRegister = ({setActiveComponent}: {setActiveComponent: (component: string) => void}) => {
     // Require fix in future update
     const token = useSelector((state: any) => state.auth);
 
@@ -104,6 +134,9 @@ const PatientRegister = () => {
 
     const [invoiceData, setInvoiceData] = useState<any>(null);
 
+    // Add a reset trigger
+    const [resetTrigger, setResetTrigger] = useState(0);
+
     /* const handleInputChange = (field: string, value: string) => {
       setFormData((prev) => ({ ...prev, [field]: value }));
     }; */
@@ -111,6 +144,7 @@ const PatientRegister = () => {
     const { data: patientIdData, isLoading: patientIdLoading } =
         useGetPatientIdQuery(undefined, {
             skip: !token, // Skip the query if there's no token
+            refetchOnMountOrArgChange: true
         });
 
     const { data: sampleCollectorsData, isLoading: sampleCollectorsLoading } =
@@ -178,10 +212,14 @@ const PatientRegister = () => {
     const handleCloseInvoice = () => {
         setIsInvoiceModalOpen(false);
         setInvoiceData(null);
+        setActiveComponent('PatientList')
+        // Reset form and trigger refetch
+        formik.resetForm();
+        setResetTrigger(prev => prev + 1);
     };
 
-    const formik = useFormik({
-        initialValues: formData,
+    const formik = useFormik<FormValues>({
+        initialValues: initialFormValues,
         validationSchema: schema,
         onSubmit: (values) => {
             setIsBillingModalOpen(true);
@@ -190,6 +228,46 @@ const PatientRegister = () => {
 
 
     const { handleChange, handleSubmit, values, errors, touched, handleBlur } = formik;
+
+    // Reset all other form-related states
+    useEffect(() => {
+        if (resetTrigger > 0) {
+            // Reset search query
+            setSearchQuery("");
+            
+            // Reset modal states
+            setIsQuotationModalOpen(false);
+            setIsSampleCollectorModalOpen(false);
+            setIsAddOrganizationModalOpen(false);
+            setIsCollectionAddressModalOpen(false);
+            setIsBillingModalOpen(false);
+            
+            // Reset selections
+            formik.setValues({
+                patientId: "",
+                designation: "MR",
+                firstName: "",
+                lastName: "",
+                phoneNumber: "",
+                gender: "male",
+                email: "",
+                age: 0,
+                ageType: "year",
+                address: "",
+                sampleCollector: { id: "", name: "" },
+                organization: { id: "", name: "" },
+                collectedAt: { id: "", name: "" },
+            });
+        }
+    }, [resetTrigger]);
+
+    // Update patientId when new one is fetched
+    useEffect(() => {
+        if (patientIdData) {
+            formik.setFieldValue("patientId", patientIdData.patientId);
+        }
+    }, [patientIdData, resetTrigger]);
+
     return (
         <main className="w-full mx-auto px-4 lg:px-8 xl:px-16 py-6 space-y-6 text-[#000000]">
             <header className="flex flex-col md:flex-row justify-between items-start md:items-center space-y-4 md:space-y-0">

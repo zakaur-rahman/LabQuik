@@ -55,7 +55,7 @@ const BillingTab: React.FC<BillingTabProps> = ({ onClose, values, onRegisterAndP
   const billingSchema = yup.object({
     discountPercent: yup.number().min(0).max(100),
     discountAmount: yup.number(),
-    advancePaid: yup.number(),
+    paidAmount: yup.number(),
     paymentMode: yup.string(),
     tests: yup.array().of(
       yup.object({
@@ -74,7 +74,7 @@ const BillingTab: React.FC<BillingTabProps> = ({ onClose, values, onRegisterAndP
   const billing = {
     discountPercent: 0,
     discountAmount: 0,
-    advancePaid: 0,
+    paidAmount: 0,
     paymentMode: "cash",
     tests: [],
     discountedBy: "",
@@ -98,6 +98,12 @@ const BillingTab: React.FC<BillingTabProps> = ({ onClose, values, onRegisterAndP
   });
 
   useEffect(() => {
+    return () => {
+      formik.resetForm();
+    };
+  }, []);
+
+  useEffect(() => {
     if (isAddedPatient && addedPatientData?.patient) {
       toast.success("Patient registered successfully");
       
@@ -105,6 +111,7 @@ const BillingTab: React.FC<BillingTabProps> = ({ onClose, values, onRegisterAndP
         onRegisterAndPrintBill(addedPatientData.patient);
       }
       
+      formik.resetForm();
       onClose();
     }
 
@@ -136,10 +143,10 @@ const BillingTab: React.FC<BillingTabProps> = ({ onClose, values, onRegisterAndP
 
     const homeCollectionCharge =
       Number(billingValues.homeCollectionCharge) || 0;
-    const advancePaid = Number(billingValues.advancePaid) || 0;
+    const paidAmount = Number(billingValues.paidAmount) || 0;
 
     const total = subtotal - discount + Number(homeCollectionCharge);
-    const due = Math.max(total - Number(advancePaid), 0);
+    const due = Math.max(total - Number(paidAmount), 0);
 
     return {
       amount: subtotal,
@@ -151,7 +158,7 @@ const BillingTab: React.FC<BillingTabProps> = ({ onClose, values, onRegisterAndP
   }, [
     billingValues.tests,
     billingValues.discountPercent,
-    billingValues.advancePaid,
+    billingValues.paidAmount,
     billingValues.homeCollectionCharge,
   ]);
 
@@ -416,9 +423,9 @@ const BillingTab: React.FC<BillingTabProps> = ({ onClose, values, onRegisterAndP
                     <p className="text-sm text-gray-500 mb-1">Advance Paid</p>
                     <input
                       type="number"
-                      name="advancePaid"
-                      id="advancePaid"
-                      value={billingValues.advancePaid}
+                      name="paidAmount"
+                      id="paidAmount"
+                      value={billingValues.paidAmount}
                       onBlur={handleBlur}
                       onChange={handleChange}
                       className="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -553,5 +560,3 @@ const BillingTab: React.FC<BillingTabProps> = ({ onClose, values, onRegisterAndP
 
 export default BillingTab;
 
-{
-}

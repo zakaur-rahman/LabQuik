@@ -59,7 +59,7 @@ const SearchTest: React.FC<SearchTestProps> = ({ onSelect }) => {
           onChange={(e) => setSearchQuery(e.target.value)}
           className="w-full py-2 outline-none focus:outline-none"
         />
-        <GoSearch className="text-[#000000ac] font-[300] antialiased p-2" size={25} />
+        <GoSearch className="text-[#000000ac] w-10 h-10 font-[300] antialiased p-2" size={25} />
       </div>
 
       {isLoading && (

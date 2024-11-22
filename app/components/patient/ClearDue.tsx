@@ -10,9 +10,10 @@ interface TestPackage {
 interface BillingModalProps {
   isOpen: boolean;
   onClose: () => void;
+  selectedPatient: any;
 }
 
-const BillingModal: React.FC<BillingModalProps> = ({ isOpen, onClose }) => {
+const BillingModal: React.FC<BillingModalProps> = ({ isOpen, onClose, selectedPatient }) => {
   const [selectedPaymentMode, setSelectedPaymentMode] =
     useState<string>("Cash");
   const [paidAmount, setPaidAmount] = useState<string>("");
@@ -69,9 +70,10 @@ const BillingModal: React.FC<BillingModalProps> = ({ isOpen, onClose }) => {
                 </tr>
               </thead>
               <tbody className="divide-y">
-                {testPackages.map((item) => (
-                  <tr key={item.srNo}>
-                    <td className="py-2 px-4">{item.srNo}</td>
+                {selectedPatient?.bill?.tests?.map((item: any, index: number) => (
+                  
+                  <tr key={item.id}>
+                    <td className="py-2 px-4">{index + 1}</td>
                     <td className="py-2 px-4">{item.name}</td>
                     <td className="py-2 px-4">{item.price}/-</td>
                   </tr>
@@ -87,19 +89,19 @@ const BillingModal: React.FC<BillingModalProps> = ({ isOpen, onClose }) => {
             <div className="space-y-2">
               <div className="flex justify-between">
                 <span>Discount</span>
-                <span>{discount}%</span>
+                <span>{selectedPatient?.bill?.discount}%</span>
               </div>
               <div className="flex justify-between">
                 <span>Total Amount</span>
-                <span>{netAmount}/-</span>
+                <span>{selectedPatient?.bill?.grandTotal}/-</span>
               </div>
               <div className="flex justify-between">
                 <span>Paid</span>
-                <span>{alreadyPaid}/-</span>
+                <span>{selectedPatient?.bill?.paidAmount}/-</span>
               </div>
               <div className="flex justify-between font-semibold">
                 <span>Total Due</span>
-                <span>{totalDue}/-</span>
+                <span>{selectedPatient?.bill?.due}/-</span>
               </div>
             </div>
           </div>
@@ -108,7 +110,7 @@ const BillingModal: React.FC<BillingModalProps> = ({ isOpen, onClose }) => {
           <div className="border rounded px-4 pb-6 gap-4">
             <h3 className="font-semibold text-xl my-2">Payment Modes</h3>
             <div className="space-x-4 space-y-2">
-              {["Cash", "UPI", "Card"].map((mode) => (
+              {["cash", "upi", "card"].map((mode) => (
                 <label key={mode} className="inline-flex items-center">
                   <input
                     type="checkbox"

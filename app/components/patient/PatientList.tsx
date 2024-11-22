@@ -10,12 +10,13 @@ import {
   ArrowUpDown,
   Check,
 } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
-import Link from "next/link";
 import NewModal from "@/app/utils/NewModal";
 import Invoice from "./Invoice";
 import CustomModal from "@/app/utils/CustomModal";
 import ClearDue from "./ClearDue";
+import { useGetPatientListQuery } from "@/redux/features/patient/getPatientList";
+import { useSelector } from "react-redux";
+import EditPatientDetails from "./EditPatientDetails";
 
 interface Patient {
   id: string;
@@ -27,7 +28,7 @@ interface Patient {
   amount: number;
   dueAmount: number;
   date: string;
-  status: "Ongoing" | "Completed";
+  status?: "Ongoing" | "Completed";
   contact: string;
   createdBy: string;
   sampleCollector: string;
@@ -53,54 +54,54 @@ const PatientList: React.FC<PatientListProps> = ({ onPatientSelect }) => {
   const [isInvoiceModalOpen, setIsInvoiceModalOpen] = useState(false);
   const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
   const [isClearDueModalOpen, setIsClearDueModalOpen] = useState(false);
-  const [selectedPatientForClearDue, setSelectedPatientForClearDue] = useState<Patient | null>(null);
+  const [selectedPatientForClearDue, setSelectedPatientForClearDue] =
+    useState<Patient | null>(null);
+  const [invoiceData, setInvoiceData] = useState<any[]>([]);
+  const token = useSelector((state: any) => state.auth);
+  const [isEditPatientModalOpen, setIsEditPatientModalOpen] = useState(false);
+  const [selectedPatientForEdit, setSelectedPatientForEdit] =
+    useState<Patient | null>(null);
 
   useEffect(() => {
     setIsMounted(true);
   }, []);
 
+  const {
+    data: patientsData,
+    isLoading: patientsLoading,
+    isError: patientsError,
+  } = useGetPatientListQuery(undefined, {
+    skip: !token, // Skip the query if there's no token
+  });
   useEffect(() => {
-    // Fetch patients data here
-    // For now, we'll use mock data
-    setPatients([
-      {
-        id: "241019001",
-        name: "ArAhmad",
-        age: 12,
-        gender: "Male",
-        referringDoctor: " Ahmad",
-        tests: ["Vitamin D3"],
-        amount: 300,
-        date: "2024-10-19 11:15 PM",
-        status: "Ongoing",
-        contact: "9876543210",
-        createdBy: "Asalan",
-        sampleCollector: "Zak",
-        dueAmount: 0,
-        collectionLocation: "Ejaz Labs",
-      },
-      {
-        id: "241019002",
-        name: "Arsalan Ahmad",
-        age: 12,
-        gender: "Male",
-        referringDoctor: "Moin Ahmad",
-        tests: ["Vitamin D3"],
-        amount: 30,
-        date: "2024-10-19 11:25 PM",
-        status: "Ongoing",
-        contact: "9876543210",
-        createdBy: "Arsalan",
-        sampleCollector: "Zak",
-        dueAmount: 100,
-        collectionLocation: "Ejaz Labs",
-      },
-      // Add more mock patients here
-    ]);
-  }, []);
+    if (patientsData) {
+      const transformData = patientsData?.patients.map((patient: any) => ({
+        id: patient.patientId,
+        name: `${patient.firstName} ${patient.lastName}`,
+        age: patient.age,
+        gender: patient.gender,
+        referringDoctor: patient.organization?.name || "N/A",
+        tests: patient.bill.tests.map((test: any) => test.name),
+        amount: patient.bill.grandTotal,
+        dueAmount: patient.bill.due,
+        date: new Date(patient.bill.createdAt).toISOString(),
+        status: patient.status === "ongoing" ? "Ongoing" : "Completed",
+        contact: patient.phoneNumber,
+        createdBy: patient.bill.discountedBy || "Unknown",
+        sampleCollector: patient.sampleCollector?.name || "Unknown",
+        collectionLocation: patient.collectedAt?.name || "Unknown",
+      }));
+      setPatients(transformData);
+      setInvoiceData(patientsData?.patients);
+    }
+  }, [patientsData]);
 
-  const toggleRowExpansion = (patientId: string, event: React.MouseEvent) => {
-    if ((event.target as HTMLElement).closest("button")) {
+  const toggleRowExpansion = (
+    patientId: string,
+    event: React.MouseEvent<HTMLElement>
+  ) => {
+    const target = event.target as HTMLElement;
+    if (target.closest("button")) {
       event.stopPropagation();
       return;
     }
@@ -108,23 +109,30 @@ const PatientList: React.FC<PatientListProps> = ({ onPatientSelect }) => {
   };
 
   useEffect(() => {
-    if (expandedContentRef.current) {
-      expandedContentRef.current.style.maxHeight = expandedRowId
-        ? `${expandedContentRef.current.scrollHeight}px`
-        : "0px";
+    if (expandedContentRef.current && expandedRowId) {
+      try {
+        expandedContentRef.current.style.maxHeight = `${expandedContentRef.current.scrollHeight}px`;
+      } catch (error) {
+        console.error("Error setting maxHeight:", error);
+      }
     }
   }, [expandedRowId]);
 
-  const filteredPatients = patients.filter(
-    (patient) =>
-      (patient.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        patient.id.includes(searchQuery)) &&
-      (statusFilter === "All" || patient.status === statusFilter) &&
-      (dateRange.start === "" ||
-        new Date(patient.date) >= new Date(dateRange.start)) &&
-      (dateRange.end === "" ||
-        new Date(patient.date) <= new Date(dateRange.end))
-  );
+  const filteredPatients = React.useMemo(() => {
+    return patients.filter((patient) => {
+      const patientDate = new Date(patient.date);
+      const startDate = dateRange.start ? new Date(dateRange.start) : null;
+      const endDate = dateRange.end ? new Date(dateRange.end) : null;
+
+      return (
+        (patient.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          patient.id.includes(searchQuery)) &&
+        (statusFilter === "All" || patient.status === statusFilter) &&
+        (!startDate || patientDate >= startDate) &&
+        (!endDate || patientDate <= endDate)
+      );
+    });
+  }, [patients, searchQuery, statusFilter, dateRange]);
 
   const sortedPatients = React.useMemo(() => {
     let sortablePatients = [...filteredPatients];
@@ -137,6 +145,9 @@ const PatientList: React.FC<PatientListProps> = ({ onPatientSelect }) => {
         }
         const aValue = a[sortConfig.key as keyof Patient];
         const bValue = b[sortConfig.key as keyof Patient];
+        if (aValue === undefined || bValue === undefined) {
+          return 0;
+        }
         if (aValue < bValue) {
           return sortConfig.direction === "asc" ? -1 : 1;
         }
@@ -162,14 +173,43 @@ const PatientList: React.FC<PatientListProps> = ({ onPatientSelect }) => {
   };
 
   const handleBillClick = (patient: Patient) => {
-    setSelectedPatient(patient);
+    setSelectedPatient(invoiceData.find((p) => p.patientId === patient.id));
     setIsInvoiceModalOpen(true);
   };
 
   const handleClearDueClick = (patient: Patient) => {
-    setSelectedPatientForClearDue(patient);
+    const patientData = invoiceData.find((p) => p.patientId === patient.id);
+    setSelectedPatientForClearDue(patientData);
     setIsClearDueModalOpen(true);
   };
+
+  const handleModalClose = () => {
+    setIsInvoiceModalOpen(false);
+    setSelectedPatient(null);
+  };
+
+  const handleClearDueModalClose = () => {
+    setIsClearDueModalOpen(false);
+    setSelectedPatientForClearDue(null);
+  };
+
+  const handleEditPatientClick = (patient: Patient) => {
+    const patientData = invoiceData.find((p) => p.patientId === patient.id);
+    setSelectedPatientForEdit(patientData);
+    setIsEditPatientModalOpen(true);
+  };
+
+  if (patientsLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-lg">Loading patients data...</div>
+      </div>
+    );
+  }
+
+  if (patientsError) {
+    return <div>Error fetching patients data</div>;
+  }
 
   return (
     <main className="p-4 space-y-4 text-[#000000]">
@@ -311,7 +351,7 @@ const PatientList: React.FC<PatientListProps> = ({ onPatientSelect }) => {
                       </button>
 
                       {patient.dueAmount !== 0 ? (
-                        <button 
+                        <button
                           className="bg-red-500 text-white text-center justify-center px-4 w-[140px] py-1 rounded flex items-center"
                           onClick={() => handleClearDueClick(patient)}
                         >
@@ -361,15 +401,18 @@ const PatientList: React.FC<PatientListProps> = ({ onPatientSelect }) => {
                           </div>
                           <div className="flex flex-col space-y-2 mr-6">
                             <button
-                              className="bg-red-500 text-white px-4 py-2 rounded flex items-center"
+                              className="border border-blue-500 text-black px-4 py-1 rounded flex items-center"
                               onClick={() => onPatientSelect(patient.id)}
                             >
                               <Eye size={16} className="mr-1" /> View Details
                             </button>
-                            <button className="bg-yellow-500 text-white px-4 py-2 rounded flex items-center">
+                            <button
+                              className="bg-yellow-500 text-white px-4 py-1 rounded flex items-center"
+                              onClick={() => handleEditPatientClick(patient)}
+                            >
                               <Edit2 size={16} className="mr-1" /> Edit Patient
                             </button>
-                            <button className="bg-red-500 text-white px-4 py-2 rounded flex items-center">
+                            <button className="bg-red-500 text-white px-4 py-1 rounded flex items-center">
                               <Trash2 size={16} className="mr-1" /> Delete
                             </button>
                           </div>
@@ -390,23 +433,8 @@ const PatientList: React.FC<PatientListProps> = ({ onPatientSelect }) => {
           component={(props) => (
             <Invoice
               {...props}
-              billId={selectedPatient.id}
-              billDate={selectedPatient.date}
-              patientName={selectedPatient.name}
-              age={selectedPatient.age}
-              gender={selectedPatient.gender}
-              referredBy={selectedPatient.referringDoctor}
-              paymentType="Cash" // You may want to add this to your Patient interface
-              tests={selectedPatient.tests.map((test) => ({
-                description: test,
-                amount: 0,
-              }))} // You may want to add prices to your tests
-              discount={0} // You may want to add this to your Patient interface
-              paymentMade={selectedPatient.amount - selectedPatient.dueAmount}
-              clinicName="Your Clinic Name"
-              clinicAddress="Your Clinic Address"
-              clinicPhone="Your Clinic Phone"
-              clinicEmail="Your Clinic Email"
+              invoiceData={selectedPatient}
+              onClose={handleModalClose}
             />
           )}
           className="w-full max-w-4xl mx-4 h-[80vh] overflow-y-scroll"
@@ -419,11 +447,21 @@ const PatientList: React.FC<PatientListProps> = ({ onPatientSelect }) => {
           component={(props) => (
             <ClearDue
               {...props}
-              patient={selectedPatientForClearDue}
-              onClose={() => setIsClearDueModalOpen(false)}
+              selectedPatient={selectedPatientForClearDue}
+              onClose={handleClearDueModalClose}
             />
           )}
           className="w-full max-w-6xl mx-4"
+        />
+      )}
+      {isEditPatientModalOpen && selectedPatientForEdit && (
+        <NewModal
+          open={isEditPatientModalOpen}
+          setOpen={setIsEditPatientModalOpen}
+          component={(props) => (
+            <EditPatientDetails {...props} selectedPatientForEdit={selectedPatientForEdit} />
+          )}
+          className="w-full max-w-6xl mx-4 h-[60vh] overflow-y-scroll"
         />
       )}
     </main>

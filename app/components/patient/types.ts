@@ -1,7 +1,7 @@
 interface BillingInfo {
   discountPercent: string;
   discountAmount: string;
-  advancePaid: string;
+  paidAmount: string;
   paymentMode: "Cash" | "Card" | "Online"; // Assuming different payment modes can be added
   tests: string[]; // Assuming tests are represented as an array of strings; update if they have a different type
   discountedBy: string;
@@ -61,7 +61,7 @@ export interface Patient {
       discountedBy: string;
       reasonOfDiscount: string;
       due: number;
-      advancePaid: number;
+      paidAmount: number;
       homeCollectionCharge: number;
       paymentMode: string;
       transactionId: string;
