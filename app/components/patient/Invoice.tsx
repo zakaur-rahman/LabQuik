@@ -1,5 +1,6 @@
 import React, { useState, useRef, useMemo } from "react";
 import { useSelector } from "react-redux";
+import { X } from "lucide-react";
 
 interface InvoiceProps {
   invoiceData: {
@@ -19,12 +20,12 @@ interface InvoiceProps {
       }>;
       total: number;
       homeCollectionCharge: number;
-      discount: number;
+      discountAmount: number;
       grandTotal: number;
-      advancePaid: number;
+      paidAmount: number;
       due: number;
     };
-    organisation?: {
+    organization?: {
       name: string;
     };
   };
@@ -37,7 +38,7 @@ const Invoice: React.FC<InvoiceProps> = ({ invoiceData, onClose }) => {
   const { lab } = useSelector((state: any) => state.auth);
 
   // Memoize calculations
-  const formattedAmount = useMemo(() => {
+  const totalAmountInWords = useMemo(() => {
     return new Intl.NumberFormat("en-US", {
       style: "currency",
       currency: "INR",
@@ -107,7 +108,8 @@ const Invoice: React.FC<InvoiceProps> = ({ invoiceData, onClose }) => {
   };
 
   return (
-    <div className="max-w-3xl text-black mx-auto">
+    <div className="max-w-3xl text-black mx-auto py-8 relative">
+
       <div className="mb-4 p-4 bg-gray-50 rounded-t border border-gray-300">
         <div className="flex justify-between items-center">
           <div className="flex items-center">
@@ -129,6 +131,12 @@ const Invoice: React.FC<InvoiceProps> = ({ invoiceData, onClose }) => {
               className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
             >
               Print
+            </button>
+            <button
+              onClick={onClose}
+              className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600"
+            >
+              Close
             </button>
           </div>
         </div>
@@ -167,11 +175,11 @@ const Invoice: React.FC<InvoiceProps> = ({ invoiceData, onClose }) => {
             <div className="text-right">
               <p>
                 <span className="font-semibold">Bill date:</span>{" "}
-                {invoiceData.bill?.createdAt}
+                {new Date(invoiceData.bill?.createdAt).toLocaleDateString()}
               </p>
               <p>
                 <span className="font-semibold">Referred By:</span>{" "}
-                {invoiceData.organisation?.name}
+                {invoiceData.organization?.name}
               </p>
               <p>
                 <span className="font-semibold">Payment Mode:</span>{" "}
@@ -213,10 +221,10 @@ const Invoice: React.FC<InvoiceProps> = ({ invoiceData, onClose }) => {
               {invoiceData.bill?.homeCollectionCharge.toFixed(2)}
             </p>
           )}
-          {invoiceData.bill?.discount > 0 && (
+          {invoiceData.bill?.discountAmount > 0 && (
             <p>
               <span className="font-semibold">Discount:</span> -₹
-              {invoiceData.bill?.discount.toFixed(2)}
+              {invoiceData.bill?.discountAmount.toFixed(2)}
             </p>
           )}
           <p>
@@ -225,14 +233,14 @@ const Invoice: React.FC<InvoiceProps> = ({ invoiceData, onClose }) => {
           </p>
           <p>
             <span className="font-semibold">Payment Made:</span> ₹
-            {invoiceData.bill?.advancePaid.toFixed(2)}
+            {invoiceData.bill?.paidAmount.toFixed(2)}
           </p>
           <p className="text-lg font-bold">
             Balance Due: ₹{invoiceData.bill?.due.toFixed(2)}
           </p>
           <p className="text-sm italic">
             Total In Words:{" "}
-            {formattedAmount}
+            {totalAmountInWords}
             Only
           </p>
         </div>
@@ -250,7 +258,7 @@ const Invoice: React.FC<InvoiceProps> = ({ invoiceData, onClose }) => {
               </div>
             </div>
             <p className="text-center text-sm text-gray-500 mt-8">
-              Thank you for choosing {lab.name}
+              Thank you for choosing {lab.labName}
             </p>
           </div>
         </div>
