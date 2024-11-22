@@ -17,7 +17,6 @@ const SelectMenu: React.FC<SelectMenuProps> = ({
   value,
   onChange,
   onAdd,
-  placeholder = "Select an option",
   className = "",
 }) => {
   const [isOpen, setIsOpen] = useState(false);
@@ -52,7 +51,7 @@ const SelectMenu: React.FC<SelectMenuProps> = ({
     type?: string;
   }) => {
     onChange({ id: option.id, name: option.name });
-    setSearchQuery(option.name);
+    setSearchQuery("");
     setIsOpen(false);
   };
 
@@ -63,6 +62,7 @@ const SelectMenu: React.FC<SelectMenuProps> = ({
 
   const handleInputClick = () => {
     setIsOpen(true);
+    setSearchQuery("");
     inputRef.current?.focus();
   };
 
@@ -82,7 +82,7 @@ const SelectMenu: React.FC<SelectMenuProps> = ({
               type="text"
               className="flex-grow outline-none"
               placeholder="Type to search"
-              value={searchQuery}
+              value={isOpen ? searchQuery : value.name}
               onChange={handleInputChange}
             />
             <ChevronDown className="w-5 h-5 text-gray-400" />
