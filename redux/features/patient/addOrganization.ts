@@ -11,7 +11,7 @@ export const addOrganizationApiSlice = apiSlice.injectEndpoints({
         }),
         getOrganizations: builder.query({
             query: () => ({
-                url: "/organizations/get-all",
+                url: "/organizations/get-all-by-lab",
                 method: "GET",
             }),
         }),

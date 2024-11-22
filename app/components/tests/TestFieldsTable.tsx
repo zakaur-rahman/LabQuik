@@ -8,6 +8,7 @@ interface TableData {
   units: string;
   formula: string;
   testMethod: string;
+  fieldType: string;
   range: {
     numeric: {
       minRange: string;
@@ -26,23 +27,55 @@ interface TableData {
   };
 }
 
+interface SingleFieldTableData {
+  fieldType: string;
+  name: string;
+  field: string;
+  units: string;
+  formula: string;
+  testMethod: string;
+  range: {
+    numeric: {
+      minRange: string;
+      maxRange: string;
+    };
+    text: string;
+    numeric_unbound: {
+      comparisonOperator: string;
+      value: string;
+    };
+    multiple_range: string;
+    custom: {
+      options: string[];
+      defaultOption: string;
+    };
+  };
+}
+interface MultipleFieldsTableData {
+  titleName: string;
+  fieldType: string;
+  finalMultipleFieldsData: MultipleFieldsTableData[];
+}
+
+
+
 interface TestFieldsTableProps {
-  testFields: TableData[];
+  testFields: (SingleFieldTableData | MultipleFieldsTableData)[];
   onDragEnd: (result: { source: { index: number }, destination: { index: number } }) => void;
   onDelete?: (index: number) => void;
-  onRowSelect: (field: TableData | null, index: number) => void;
+  onRowSelect: (field: SingleFieldTableData | MultipleFieldsTableData | null, index: number) => void;
   selectedRowIndex: number | null;
   setFormula: (isFormula: boolean) => void;
   isFormula: boolean;
 }
 
 const TableRows: React.FC<{
-  fields: TableData[];
+  fields: TestFieldsTableProps["testFields"];
   onDelete?: (index: number) => void;
   onDragStart: (e: React.DragEvent, index: number) => void;
   onDragOver: (e: React.DragEvent, index: number) => void;
   onDragEnd: () => void;
-  onRowSelect: (field: TableData | null, index: number) => void;
+  onRowSelect: (field: SingleFieldTableData | MultipleFieldsTableData | null, index: number) => void;
   selectedRowIndex: number | null;
   setFormula: (formula: boolean) => void;
   isFormula: boolean;
@@ -60,7 +93,7 @@ const TableRows: React.FC<{
   <>
     {fields.map((field, index) => (
       <tr
-        key={`${field.name}-${index}`}
+        key={`${(field as SingleFieldTableData).name || (field as MultipleFieldsTableData).titleName}-${index}`}
         draggable
         onDragStart={(e) => onDragStart(e, index)}
         onDragOver={(e) => onDragOver(e, index)}
@@ -78,13 +111,13 @@ const TableRows: React.FC<{
             onChange={() => onRowSelect(selectedRowIndex === index ? null : field, index)}
           />
         </td>
-        <td className="p-2 min-w-[120px]">{field.name}</td>
-        <td className="p-2 min-w-[120px]">{field.field}</td>
-        <td className="p-2 min-w-[100px]">{field.units}</td>
+        <td className="p-2 min-w-[120px]">{(field as SingleFieldTableData).name}</td>
+        <td className="p-2 min-w-[120px]">{(field as SingleFieldTableData).field}</td>
+        <td className="p-2 min-w-[100px]">{(field as SingleFieldTableData).units}</td>
         <td className="p-2 min-w-[100px]">
-          {field.range.numeric.minRange && field.range.numeric.maxRange
-            ? `${field.range.numeric.minRange} - ${field.range.numeric.maxRange}`
-            : field.range.text || `${field.range.numeric_unbound.comparisonOperator} ${field.range.numeric_unbound.value}` || field.range.multiple_range}
+          {(field as SingleFieldTableData).range.numeric.minRange && (field as SingleFieldTableData).range.numeric.maxRange
+            ? `${(field as SingleFieldTableData).range.numeric.minRange} - ${(field as SingleFieldTableData).range.numeric.maxRange}`
+            : (field as SingleFieldTableData).range.text || `${(field as SingleFieldTableData).range.numeric_unbound.comparisonOperator} ${(field as SingleFieldTableData).range.numeric_unbound.value}` || (field as SingleFieldTableData).range.multiple_range}
         </td>
         <td className="p-2 w-20">
           <input
@@ -113,7 +146,7 @@ const TableRows: React.FC<{
   </>
 ));
 
-TableRows.displayName = 'TableRows';
+TableRows.displayName = 'TableRows'; 
 
 export const TestFieldsTable: React.FC<TestFieldsTableProps> = ({
   testFields,
@@ -151,7 +184,7 @@ export const TestFieldsTable: React.FC<TestFieldsTableProps> = ({
     setDragOverIndex(null);
   };
 
-  const handleRowSelect = (field: TableData | null, index: number) => {
+  const handleRowSelect = (field: SingleFieldTableData | MultipleFieldsTableData | null, index: number) => {
     onRowSelect(field, index);
     setFormula(false); // Reset formula when selecting/deselecting a row
   };
@@ -182,7 +215,7 @@ export const TestFieldsTable: React.FC<TestFieldsTableProps> = ({
             selectedRowIndex={selectedRowIndex}
             setFormula={setFormula}
             isFormula={isFormula}
-          />
+          /> 
         </tbody>
       </table>
     </div>

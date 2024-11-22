@@ -16,7 +16,7 @@ export const apiSlice = createApi({
     
     loadUser: builder.query({
       query: () => ({
-        url: 'users/user',
+        url: '/labs/get-lab-details',
         method: 'GET',
         credentials: 'include' as const,
       }),
@@ -25,8 +25,8 @@ export const apiSlice = createApi({
           const result = await queryFulfilled;
           dispatch(
             userLoggedIn({
-              accessToken: result.data.activationToken,
-              user: result.data.data,
+              accessToken: result.data.token,
+              lab: result.data.lab,
             })
           );
         } catch (error: any) {

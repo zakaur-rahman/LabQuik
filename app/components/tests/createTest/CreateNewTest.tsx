@@ -1,18 +1,14 @@
 import React, { useState, useEffect } from "react";
-import { Trash2Icon, PlusIcon, PencilIcon } from "lucide-react";
+import { PlusIcon, PencilIcon } from "lucide-react";
 import { DropResult } from "@hello-pangea/dnd";
 import { TestFieldsTable } from "../TestFieldsTable";
-import { MultipleFieldsEditor } from "../MultipleFieldsEditor";
 import { TextEditor } from "../TextEditor";
 import CustomDropdown from "../CustomDropdown";
 import CustomModal from "@/app/utils/CustomModal";
-import AddComment from "../../common/AddComment";
-import ViewComment from "../../common/ViewComment";
 import Interpretation from "../../common/Interpretation";
 
-type EditorType = "Single field" | "Multiple fields" | "Text Editor";
-
-interface TableData {
+interface SingleFieldTableData {
+  fieldType: string;
   name: string;
   field: string;
   units: string;
@@ -35,6 +31,11 @@ interface TableData {
     };
   };
 }
+interface MultipleFieldsTableData {
+  titleName: string;
+  fieldType: string;
+  finalMultipleFieldsData: MultipleFieldsTableData[];
+}
 
 interface TestData {
   department: string;
@@ -45,11 +46,12 @@ interface TestData {
   sampleType: string;
   age: string;
   suffix: string;
-  type: EditorType;
+  finalData: (SingleFieldTableData | MultipleFieldsTableData)[];
 }
 
-const initialTableData: TableData = {
+const initialSingleFieldData: SingleFieldTableData = {
   name: "",
+  fieldType: "Single field",
   field: "numeric",
   units: "",
   formula: "",
@@ -72,6 +74,12 @@ const initialTableData: TableData = {
   },
 };
 
+const initialMultipleFieldsData: MultipleFieldsTableData = {
+  titleName: "",
+  fieldType: "Multiple fields",
+  finalMultipleFieldsData: [],
+};
+
 const initialTestData: TestData = {
   department: "",
   testName: "",
@@ -81,63 +89,38 @@ const initialTestData: TestData = {
   sampleType: "Serum",
   age: "default",
   suffix: "",
-  type: "Single field",
+  finalData: [],
 };
 
-
-
 const CreateNewTest: React.FC = () => {
-  const [tableData, setTableData] = useState<TableData>(initialTableData);
+  const [singleFieldData, setSingleFieldData] = useState<SingleFieldTableData>(
+    initialSingleFieldData
+  );
+  const [multipleFieldsData, setMultipleFieldsData] =
+    useState<MultipleFieldsTableData>(initialMultipleFieldsData);
   const [testData, setTestData] = useState<TestData>(initialTestData);
-  const [testFields, setTestFields] = useState<TableData[]>([]);
   const [selectedRowIndex, setSelectedRowIndex] = useState<number | null>(null);
   const [isFormula, setIsFormula] = useState<boolean>(false);
-  const [isCommentModalOpen, setIsCommentModalOpen] = useState(false);
-  const [isViewCommentModalOpen, setIsViewCommentModalOpen] = useState(false);
-  const [isInterpretationModalOpen, setIsInterpretationModalOpen] = useState(false);
+  const [isInterpretationModalOpen, setIsInterpretationModalOpen] =
+    useState(false);
+  const [fieldType, setFieldType] = useState<string>("Single field");
 
   const [comments, setComments] = useState([
     { id: 1, text: "hello" },
     // Add more comments as needed
   ]);
 
-  const handleTableDataChange = (newData: Partial<TableData>) => {
-    setTableData((prevData) => {
-      let updatedData = { ...prevData, ...newData };
-
-      // Reset range and units when field type changes
-      if (newData.field && newData.field !== prevData.field) {
-        updatedData = {
-          ...updatedData,
-          units: "",
-          range: {
-            numeric: { minRange: "", maxRange: "" },
-            text: "",
-            numeric_unbound: { comparisonOperator: "", value: "" },
-            multiple_range: "",
-            custom: { options: [], defaultOption: "" },
-          },
-        };
-      }
-
-      return updatedData;
-    });
-
-    if (selectedRowIndex !== null) {
-      setTestFields((prevFields) => {
-        const updatedFields = [...prevFields];
-        updatedFields[selectedRowIndex] = {
-          ...updatedFields[selectedRowIndex],
-          ...newData,
-        };
-
-        // Reset range and units in testFields when field type changes
-        if (
-          newData.field &&
-          newData.field !== prevFields[selectedRowIndex].field
-        ) {
-          updatedFields[selectedRowIndex] = {
-            ...updatedFields[selectedRowIndex],
+  const handleSingleFieldDataChange = (
+    newData: Partial<SingleFieldTableData>
+  ) => {
+    if (fieldType === "Single field") {
+      setSingleFieldData((prevData) => {
+        let updatedData = { ...prevData, ...newData };
+        
+        // Reset range and units when field type changes
+        if (newData.field && newData.field !== prevData.field) {
+          updatedData = {
+            ...updatedData,
             units: "",
             range: {
               numeric: { minRange: "", maxRange: "" },
@@ -148,9 +131,11 @@ const CreateNewTest: React.FC = () => {
             },
           };
         }
-
-        return updatedFields;
+        return updatedData;
       });
+    } else if (fieldType === "Multiple fields") {
+      // For multiple fields, update singleFieldData for subfields
+      setSingleFieldData((prevData) => ({ ...prevData, ...newData }));
     }
   };
 
@@ -161,18 +146,22 @@ const CreateNewTest: React.FC = () => {
   const onDragEnd = (result: DropResult) => {
     if (!result.destination) return;
 
-    const items = Array.from(testFields);
+    const items = Array.from(testData.finalData);
     const [reorderedItem] = items.splice(result.source.index, 1);
     items.splice(result.destination.index, 0, reorderedItem);
 
-    setTestFields(items);
+    setTestData((prevData) => ({ ...prevData, finalData: items }));
   };
 
   const handleDeleteField = (index: number) => {
-    setTestFields((prev) => prev.filter((_, i) => i !== index));
+    setTestData((prevData) => ({
+      ...prevData,
+      finalData: prevData.finalData.filter((_, i) => i !== index),
+    }));
     if (selectedRowIndex === index) {
       setSelectedRowIndex(null);
-      setTableData(initialTableData);
+      setSingleFieldData(initialSingleFieldData);
+      setMultipleFieldsData(initialMultipleFieldsData);
     }
   };
 
@@ -180,27 +169,71 @@ const CreateNewTest: React.FC = () => {
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
   ) => {
     const { name, value } = e.target;
-    
+
     // Handle test data changes (including testName)
-    if (name === "testName" || name === "department" || name === "cost" || name === "testCode" || 
-        name === "sex" || name === "sampleType" || name === "age" || name === "suffix" || name === "type") {
+    if (
+      name === "testName" ||
+      name === "department" ||
+      name === "cost" ||
+      name === "testCode" ||
+      name === "sex" ||
+      name === "sampleType" ||
+      name === "age" ||
+      name === "suffix" ||
+      name === "type"
+    ) {
       handleTestDataChange({ [name]: value });
     }
   };
 
+  const handleMultipleFieldsDataChange = (
+    newData: Partial<MultipleFieldsTableData>
+  ) => {
+    setMultipleFieldsData((prevData) => ({ ...prevData, ...newData }));
+  };
   // Separate handler for table data name
   const handleTableNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { value } = e.target;
-    handleTableDataChange({ name: value });
+    if (fieldType === "Single field") {
+      handleSingleFieldDataChange({ name: value });
+    } else if (fieldType === "Multiple fields") {
+      // If it's the title name input
+      if (e.target.getAttribute('data-field') === 'titleName') {
+        setMultipleFieldsData(prev => ({ ...prev, titleName: value }));
+      } else {
+        // If it's the subfield name input
+        handleSingleFieldDataChange({ name: value });
+      }
+    }
   };
 
-  const handleRowSelect = (field: TableData | null, index: number) => {
+
+  //handle addField
+  const handleAddField = () => {
+    if (fieldType === "Single field" && singleFieldData.name) {
+      setTestData((prevData) => ({
+        ...prevData,
+        finalData: [...prevData.finalData, { ...singleFieldData }],
+      }));
+      setSingleFieldData(initialSingleFieldData);
+    } else if (fieldType === "Multiple fields" && multipleFieldsData.titleName) {
+      setTestData((prevData) => ({
+        ...prevData,
+        finalData: [...prevData.finalData, { ...multipleFieldsData }],
+      }));
+      setMultipleFieldsData(initialMultipleFieldsData);
+      setSingleFieldData(initialSingleFieldData);
+    }
+    setSelectedRowIndex(null);
+  };
+
+  const handleRowSelect = (field: SingleFieldTableData | MultipleFieldsTableData | null, index: number) => {
     if (field) {
-      setTableData(field);
-      setTestData((prevData) => ({ ...prevData, testName: field.name }));
+      setSingleFieldData(field as SingleFieldTableData);
+      setTestData((prevData) => ({ ...prevData, testName: (field as SingleFieldTableData).name }));
       setSelectedRowIndex(index);
     } else {
-      setTableData(initialTableData);
+      setSingleFieldData(initialSingleFieldData);
       setTestData((prevData) => ({ ...prevData, testName: "" }));
       setSelectedRowIndex(null);
       setIsFormula(false);
@@ -209,37 +242,43 @@ const CreateNewTest: React.FC = () => {
 
   const resetForm = () => {
     setTestData(initialTestData);
-    setTableData(initialTableData);
+    setSingleFieldData(initialSingleFieldData);
+    setMultipleFieldsData(initialMultipleFieldsData);
     setSelectedRowIndex(null);
     setIsFormula(false);
   };
 
   const handleSubmit = () => {
-    console.log("Saving test data:", { testData, testFields, tableData });
+    console.log("Saving test data:", { testData });
     // Add your save logic here
   };
 
   const handleReset = () => {
     if (window.confirm("Are you sure you want to reset all fields?")) {
       resetForm();
-      setTestFields([]);
+      setTestData((prevData) => ({ ...prevData, finalData: [] }));
     }
   };
 
   useEffect(() => {
-    if (selectedRowIndex === null && tableData.name) {
-      const newIndex = testFields.length;
-      setTestFields((prev) => [...prev, tableData]);
+    if (selectedRowIndex === null && singleFieldData.name) {
+      const newIndex = testData.finalData.length;
+      setTestData((prevData) => ({
+        ...prevData,
+        finalData: [...prevData.finalData, singleFieldData],
+      }));
       setSelectedRowIndex(newIndex);
     }
-  }, [tableData, selectedRowIndex, testFields.length]);
+  }, [singleFieldData, selectedRowIndex, testData.finalData.length]);
 
   const renderEditor = () => {
-    switch (testData.type) {
-      case "Single field":
+    switch (singleFieldData.fieldType) {
+      case "Text Editor":
+        return <TextEditor />;
+      default:
         return (
           <TestFieldsTable
-            testFields={testFields}
+            testFields={testData.finalData}
             onDragEnd={() => onDragEnd}
             onDelete={handleDeleteField}
             onRowSelect={handleRowSelect}
@@ -248,15 +287,17 @@ const CreateNewTest: React.FC = () => {
             setFormula={setFormula}
           />
         );
-      case "Multiple fields":
-        return <MultipleFieldsEditor />;
-      case "Text Editor":
-        return <TextEditor />;
-      default:
-        return null;
     }
   };
-
+  const handleFieldTypeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const fieldType = e.target.value;
+    setFieldType(fieldType);
+    handleSingleFieldDataChange({ fieldType });
+    setMultipleFieldsData({
+      ...multipleFieldsData,
+      fieldType,
+    });
+  };
   const setFormula = (value: boolean) => {
     setIsFormula(value);
   };
@@ -265,24 +306,24 @@ const CreateNewTest: React.FC = () => {
     console.log("Adding formula for row:", selectedRowIndex);
   };
 
-  const handleCommentSave = (comment: string) => {
-    console.log("Saving comment:", comment);
-    setIsCommentModalOpen(false);
-  };
-
-  const handleEditComment = (id: number) => {
-    console.log("Editing comment:", id);
-    // Add your edit logic here
-  };
-
-  const handleRemoveComment = (id: number) => {
-    console.log("Removing comment:", id);
-    setComments(comments.filter(comment => comment.id !== id));
-  };
-
   const handleInterpretationSave = (interpretationData: any) => {
     console.log("Saving interpretation:", interpretationData);
     setIsInterpretationModalOpen(false);
+  };
+
+  // Add new handler for subfields
+  const handleAddSubField = () => {
+    if (fieldType === "Multiple fields" && multipleFieldsData.titleName && singleFieldData.name) {
+      const newSubField: SingleFieldTableData = { ...singleFieldData };
+      setMultipleFieldsData((prevData) => ({
+        ...prevData,
+        finalMultipleFieldsData: [
+          ...prevData.finalMultipleFieldsData,
+          newSubField as unknown as MultipleFieldsTableData
+        ],
+      }));
+      setSingleFieldData(initialSingleFieldData);
+    }
   };
 
   return (
@@ -301,19 +342,7 @@ const CreateNewTest: React.FC = () => {
             <button className="px-3 py-1.5 text-blue-500 border border-blue-500 rounded text-sm hover:bg-blue-50">
               Report preview
             </button>
-            {/* <button 
-              onClick={() => setIsViewCommentModalOpen(true)}
-              className="px-3 py-1.5 text-blue-500 border border-blue-500 rounded text-sm hover:bg-blue-50"
-            >
-              View Comments
-            </button>
-            <button 
-              onClick={() => setIsCommentModalOpen(true)}
-              className="px-3 py-1.5 bg-blue-500 text-white rounded text-sm hover:bg-blue-600"
-            >
-              <PlusIcon className="inline-block w-4 h-4 mr-1" />
-              Add Comment
-            </button> */}
+
             <button
               onClick={handleSubmit}
               className="px-3 py-1.5 bg-blue-500 text-white rounded text-sm hover:bg-blue-600 flex items-center"
@@ -440,7 +469,7 @@ const CreateNewTest: React.FC = () => {
               className="w-full border rounded px-3 py-1.5 text-sm"
             />
           </div>
-          <button 
+          <button
             onClick={() => setIsInterpretationModalOpen(true)}
             className="px-4 py-1.5 bg-blue-500 text-white rounded text-sm hover:bg-blue-600"
           >
@@ -455,9 +484,9 @@ const CreateNewTest: React.FC = () => {
             <div>
               <label className="text-sm text-gray-600 mb-1">Type:</label>
               <select
-                name="type"
-                value={testData.type}
-                onChange={handleInputChange}
+                name="fieldType"
+                value={fieldType}
+                onChange={handleFieldTypeChange}
                 aria-label="Type"
                 className="w-full border rounded px-3 py-1.5 text-sm"
               >
@@ -466,15 +495,16 @@ const CreateNewTest: React.FC = () => {
                 <option>Text Editor</option>
               </select>
             </div>
-            {testData.type === "Single field" && (
+            {/* -------------------------------- Single Field -------------------------------- */}
+            {fieldType === "Single field" && (
               <>
                 <div>
                   <label className="text-sm text-gray-600 mb-1">Name:</label>
                   <input
                     type="text"
                     name="name"
-                    value={tableData.name}
-                    onChange={handleTableNameChange}
+                    value={singleFieldData.name}
+                    onChange={(e)=>handleSingleFieldDataChange({name:e.target.value})}
                     aria-label="Name"
                     className="w-full border rounded px-3 py-1.5 text-sm"
                   />
@@ -485,9 +515,11 @@ const CreateNewTest: React.FC = () => {
                   </label>
                   <select
                     name="testMethod"
-                    value={tableData.testMethod}
+                    value={singleFieldData.testMethod}
                     onChange={(e) =>
-                      handleTableDataChange({ testMethod: e.target.value })
+                      handleSingleFieldDataChange({
+                        testMethod: e.target.value,
+                      })
                     }
                     aria-label="Test Method"
                     className="w-full border rounded px-3 py-1.5 text-sm"
@@ -502,9 +534,9 @@ const CreateNewTest: React.FC = () => {
                   <label className="text-sm text-gray-600 mb-1">Field:</label>
                   <select
                     name="field"
-                    value={tableData.field}
+                    value={singleFieldData.field}
                     onChange={(e) =>
-                      handleTableDataChange({ field: e.target.value })
+                      handleSingleFieldDataChange({ field: e.target.value })
                     }
                     aria-label="Field"
                     className="w-full border rounded px-3 py-1.5 text-sm"
@@ -516,7 +548,7 @@ const CreateNewTest: React.FC = () => {
                     <option value="custom">Custom</option>
                   </select>
                 </div>
-                {tableData.field === "custom" && (
+                {singleFieldData.field === "custom" && (
                   <div>
                     <label className="text-sm text-gray-600 mb-1">
                       Custom:
@@ -524,19 +556,22 @@ const CreateNewTest: React.FC = () => {
                     <CustomDropdown
                       placeholder="Select or create options"
                       onOptionsChange={(options) =>
-                        handleTableDataChange({
+                        handleSingleFieldDataChange({
                           range: {
-                            ...tableData.range,
-                            custom: { ...tableData.range.custom, options },
+                            ...singleFieldData.range,
+                            custom: {
+                              ...singleFieldData.range.custom,
+                              options,
+                            },
                           },
                         })
                       }
                       onDefaultOptionChange={(defaultOption) =>
-                        handleTableDataChange({
+                        handleSingleFieldDataChange({
                           range: {
-                            ...tableData.range,
+                            ...singleFieldData.range,
                             custom: {
-                              ...tableData.range.custom,
+                              ...singleFieldData.range.custom,
                               defaultOption,
                             },
                           },
@@ -550,27 +585,27 @@ const CreateNewTest: React.FC = () => {
                   <input
                     type="text"
                     name="units"
-                    value={tableData.units}
+                    value={singleFieldData.units}
                     onChange={(e) =>
-                      handleTableDataChange({ units: e.target.value })
+                      handleSingleFieldDataChange({ units: e.target.value })
                     }
                     aria-label="Units"
                     className="w-full border rounded px-3 py-1.5 text-sm"
                   />
                 </div>
-                {tableData.field === "numeric" && (
+                {singleFieldData.field === "numeric" && (
                   <div className="flex gap-2 items-center justify-between">
                     <label className="text-sm text-gray-600 mb-1">Range:</label>
                     <input
                       type="text"
                       name="minRange"
-                      value={tableData.range.numeric.minRange}
+                      value={singleFieldData.range.numeric.minRange}
                       onChange={(e) =>
-                        handleTableDataChange({
+                        handleSingleFieldDataChange({
                           range: {
-                            ...tableData.range,
+                            ...singleFieldData.range,
                             numeric: {
-                              ...tableData.range.numeric,
+                              ...singleFieldData.range.numeric,
                               minRange: e.target.value,
                             },
                           },
@@ -584,13 +619,13 @@ const CreateNewTest: React.FC = () => {
                     <input
                       type="text"
                       name="maxRange"
-                      value={tableData.range.numeric.maxRange}
+                      value={singleFieldData.range.numeric.maxRange}
                       onChange={(e) =>
-                        handleTableDataChange({
+                        handleSingleFieldDataChange({
                           range: {
-                            ...tableData.range,
+                            ...singleFieldData.range,
                             numeric: {
-                              ...tableData.range.numeric,
+                              ...singleFieldData.range.numeric,
                               maxRange: e.target.value,
                             },
                           },
@@ -602,17 +637,20 @@ const CreateNewTest: React.FC = () => {
                     />
                   </div>
                 )}
-                {tableData.field === "text" && (
+                {singleFieldData.field === "text" && (
                   <div>
                     <label className="text-sm text-gray-600 mb-1">
                       Formula:
                     </label>
                     <textarea
                       name="textRange"
-                      value={tableData.range.text}
+                      value={singleFieldData.range.text}
                       onChange={(e) =>
-                        handleTableDataChange({
-                          range: { ...tableData.range, text: e.target.value },
+                        handleSingleFieldDataChange({
+                          range: {
+                            ...singleFieldData.range,
+                            text: e.target.value,
+                          },
                         })
                       }
                       aria-label="Formula"
@@ -620,21 +658,22 @@ const CreateNewTest: React.FC = () => {
                     />
                   </div>
                 )}
-                {tableData.field === "numeric_unbound" && (
+                {singleFieldData.field === "numeric_unbound" && (
                   <div className="flex flex-col gap-2">
                     <label className="text-sm text-gray-600 mb-1">Range:</label>
                     <div className="flex gap-2 items-center justify-between">
                       <select
                         name="comparisonOperator"
                         value={
-                          tableData.range.numeric_unbound.comparisonOperator
+                          singleFieldData.range.numeric_unbound
+                            .comparisonOperator
                         }
                         onChange={(e) =>
-                          handleTableDataChange({
+                          handleSingleFieldDataChange({
                             range: {
-                              ...tableData.range,
+                              ...singleFieldData.range,
                               numeric_unbound: {
-                                ...tableData.range.numeric_unbound,
+                                ...singleFieldData.range.numeric_unbound,
                                 comparisonOperator: e.target.value,
                               },
                             },
@@ -653,13 +692,13 @@ const CreateNewTest: React.FC = () => {
                       <input
                         type="text"
                         name="value"
-                        value={tableData.range.numeric_unbound.value}
+                        value={singleFieldData.range.numeric_unbound.value}
                         onChange={(e) =>
-                          handleTableDataChange({
+                          handleSingleFieldDataChange({
                             range: {
-                              ...tableData.range,
+                              ...singleFieldData.range,
                               numeric_unbound: {
-                                ...tableData.range.numeric_unbound,
+                                ...singleFieldData.range.numeric_unbound,
                                 value: e.target.value,
                               },
                             },
@@ -672,18 +711,18 @@ const CreateNewTest: React.FC = () => {
                     </div>
                   </div>
                 )}
-                {tableData.field === "multiple_range" && (
+                {singleFieldData.field === "multiple_range" && (
                   <div>
                     <label className="text-sm text-gray-600 mb-1">
                       Multiple Range:
                     </label>
                     <textarea
                       name="multipleRange"
-                      value={tableData.range.multiple_range}
+                      value={singleFieldData.range.multiple_range}
                       onChange={(e) =>
-                        handleTableDataChange({
+                        handleSingleFieldDataChange({
                           range: {
-                            ...tableData.range,
+                            ...singleFieldData.range,
                             multiple_range: e.target.value,
                           },
                         })
@@ -694,24 +733,307 @@ const CreateNewTest: React.FC = () => {
                   </div>
                 )}
                 <div className="flex gap-2">
-                  <button className="px-3 py-1.5 text-blue-500 border border-blue-500 rounded text-sm hover:bg-blue-50">
+                  <button className="px-3 py-1.5 text-blue-500 border border-blue-500 rounded text-sm hover:bg-blue-50"
+                    onClick={handleAddField}
+                    >
                     Add Field
                   </button>
-                  <button 
+                 {/*  {multipleFieldsData.titleName && (
+                      <button className="px-3 py-1.5 text-blue-500 border border-blue-500 rounded text-sm hover:bg-blue-50">
+                        Add SubTest
+                      </button>
+                    )} */}
+                  <button
                     onClick={() => handleAddFormula()}
-                    className={`px-3 py-1.5 text-blue-500 border border-blue-500 rounded text-sm hover:bg-blue-50 ${isFormula ? "":"hidden"}`}>
+                    className={`px-3 py-1.5 text-blue-500 border border-blue-500 rounded text-sm hover:bg-blue-50 ${
+                      isFormula ? "" : "hidden"
+                    }`}
+                  >
                     Add Formula
                   </button>
                 </div>
               </>
             )}
+
+            {/*-------------------------------- Multiple Fields --------------------------------*/}
+            {fieldType === "Multiple fields" && (
+              <>
+                <div>
+                  <label className="text-sm text-gray-600 mb-1">Title Name:</label>
+                  <input
+                    type="text"
+                    name="titleName"
+                    data-field="titleName"
+                    value={multipleFieldsData.titleName}
+                    onChange={handleTableNameChange}
+                    className="w-full border rounded px-3 py-1.5 text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="text-sm text-gray-600 mb-1">SubTest Name:</label>
+                  <input
+                    type="text"
+                    name="name"
+                    value={singleFieldData.name}
+                    onChange={handleTableNameChange}
+                    className="w-full border rounded px-3 py-1.5 text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="text-sm text-gray-600 mb-1">
+                    Test Method:
+                  </label>
+                  <select
+                    name="testMethod"
+                    value={singleFieldData.testMethod}
+                    onChange={(e) =>
+                      handleSingleFieldDataChange({
+                        testMethod: e.target.value,
+                      })
+                    }
+                    aria-label="Test Method"
+                    className="w-full border rounded px-3 py-1.5 text-sm"
+                  >
+                    <option value="">Select Test Method</option>
+                    <option value="pcr">PCR</option>
+                    <option value="elisa">ELISA</option>
+                    <option value="immunoassay">Immunoassay</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="text-sm text-gray-600 mb-1">Field:</label>
+                  <select
+                    name="field"
+                    value={singleFieldData.field}
+                    onChange={(e) =>
+                      handleSingleFieldDataChange({ field: e.target.value })
+                    }
+                    aria-label="Field"
+                    className="w-full border rounded px-3 py-1.5 text-sm"
+                  >
+                    <option value="numeric">Numeric</option>
+                    <option value="text">Text</option>
+                    <option value="numeric_unbound">Numeric Unbound</option>
+                    <option value="multiple_range">Multiple Range</option>
+                    <option value="custom">Custom</option>
+                  </select>
+                </div>
+                {singleFieldData.field === "custom" && (
+                  <div>
+                    <label className="text-sm text-gray-600 mb-1">
+                      Custom:
+                    </label>
+                    <CustomDropdown
+                      placeholder="Select or create options"
+                      onOptionsChange={(options) =>
+                        handleSingleFieldDataChange({
+                          range: {
+                            ...singleFieldData.range,
+                            custom: {
+                              ...singleFieldData.range.custom,
+                              options,
+                            },
+                          },
+                        })
+                      }
+                      onDefaultOptionChange={(defaultOption) =>
+                        handleSingleFieldDataChange({
+                          range: {
+                            ...singleFieldData.range,
+                            custom: {
+                              ...singleFieldData.range.custom,
+                              defaultOption,
+                            },
+                          },
+                        })
+                      }
+                    />
+                  </div>
+                )}
+                <div>
+                  <label className="text-sm text-gray-600 mb-1">Units:</label>
+                  <input
+                    type="text"
+                    name="units"
+                    value={singleFieldData.units}
+                    onChange={(e) =>
+                      handleSingleFieldDataChange({ units: e.target.value })
+                    }
+                    aria-label="Units"
+                    className="w-full border rounded px-3 py-1.5 text-sm"
+                  />
+                </div>
+                {singleFieldData.field === "numeric" && (
+                  <div className="flex gap-2 items-center justify-between">
+                    <label className="text-sm text-gray-600 mb-1">Range:</label>
+                    <input
+                      type="text"
+                      name="minRange"
+                      value={singleFieldData.range.numeric.minRange}
+                      onChange={(e) =>
+                        handleSingleFieldDataChange({
+                          range: {
+                            ...singleFieldData.range,
+                            numeric: {
+                              ...singleFieldData.range.numeric,
+                              minRange: e.target.value,
+                            },
+                          },
+                        })
+                      }
+                      aria-label="Minimum"
+                      className="w-full border rounded px-3 py-1.5 text-sm"
+                      placeholder="Minimum"
+                    />
+                    <span className="text-gray-400">to</span>
+                    <input
+                      type="text"
+                      name="maxRange"
+                      value={singleFieldData.range.numeric.maxRange}
+                      onChange={(e) =>
+                        handleSingleFieldDataChange({
+                          range: {
+                            ...singleFieldData.range,
+                            numeric: {
+                              ...singleFieldData.range.numeric,
+                              maxRange: e.target.value,
+                            },
+                          },
+                        })
+                      }
+                      aria-label="Maximum"
+                      className="w-full border rounded px-3 py-1.5 text-sm"
+                      placeholder="Maximum"
+                    />
+                  </div>
+                )}
+                {singleFieldData.field === "text" && (
+                  <div>
+                    <label className="text-sm text-gray-600 mb-1">
+                      Formula:
+                    </label>
+                    <textarea
+                      name="textRange"
+                      value={singleFieldData.range.text}
+                      onChange={(e) =>
+                        handleSingleFieldDataChange({
+                          range: {
+                            ...singleFieldData.range,
+                            text: e.target.value,
+                          },
+                        })
+                      }
+                      aria-label="Formula"
+                      className="w-full border rounded px-3 py-1.5 text-sm"
+                    />
+                  </div>
+                )}
+                {singleFieldData.field === "numeric_unbound" && (
+                  <div className="flex flex-col gap-2">
+                    <label className="text-sm text-gray-600 mb-1">Range:</label>
+                    <div className="flex gap-2 items-center justify-between">
+                      <select
+                        name="comparisonOperator"
+                        value={
+                          singleFieldData.range.numeric_unbound
+                            .comparisonOperator
+                        }
+                        onChange={(e) =>
+                          handleSingleFieldDataChange({
+                            range: {
+                              ...singleFieldData.range,
+                              numeric_unbound: {
+                                ...singleFieldData.range.numeric_unbound,
+                                comparisonOperator: e.target.value,
+                              },
+                            },
+                          })
+                        }
+                        aria-label="Comparison Operator"
+                        className="w-full border rounded px-3 py-1.5 text-sm"
+                      >
+                        <option value="">Select Comparison Operator</option>
+                        <option value="<=">less than equal to</option>
+                        <option value="<">less than</option>
+                        <option value=">">greater than</option>
+                        <option value="=">equal to</option>
+                        <option value=">=">greater than equal to</option>
+                      </select>
+                      <input
+                        type="text"
+                        name="value"
+                        value={singleFieldData.range.numeric_unbound.value}
+                        onChange={(e) =>
+                          handleSingleFieldDataChange({
+                            range: {
+                              ...singleFieldData.range,
+                              numeric_unbound: {
+                                ...singleFieldData.range.numeric_unbound,
+                                value: e.target.value,
+                              },
+                            },
+                          })
+                        }
+                        aria-label="Value"
+                        className="w-full border rounded px-3 py-1.5 text-sm"
+                        placeholder="Value"
+                      />
+                    </div>
+                  </div>
+                )}
+                {singleFieldData.field === "multiple_range" && (
+                  <div>
+                    <label className="text-sm text-gray-600 mb-1">
+                      Multiple Range:
+                    </label>
+                    <textarea
+                      name="multipleRange"
+                      value={singleFieldData.range.multiple_range}
+                      onChange={(e) =>
+                        handleSingleFieldDataChange({
+                          range: {
+                            ...singleFieldData.range,
+                            multiple_range: e.target.value,
+                          },
+                        })
+                      }
+                      aria-label="Multiple Range"
+                      className="w-full border rounded px-3 py-1.5 text-sm"
+                    />
+                  </div>
+                )}
+                <div className="flex gap-2">
+                  <button 
+                    onClick={handleAddSubField}
+                    className="px-3 py-1.5 text-blue-500 border border-blue-500 rounded text-sm hover:bg-blue-50"
+                  >
+                    Add SubField
+                  </button>
+                  <button 
+                    onClick={handleAddField}
+                    className="px-3 py-1.5 text-blue-500 border border-blue-500 rounded text-sm hover:bg-blue-50"
+                  >
+                    Add Field
+                  </button>
+                  {isFormula && (
+                    <button
+                      onClick={handleAddFormula}
+                      className="px-3 py-1.5 text-blue-500 border border-blue-500 rounded text-sm hover:bg-blue-50"
+                    >
+                      Add Formula
+                    </button>
+                  )}
+                </div>
+              </>
+            )}
+            {/* -------------------------------- Text Editor -------------------------------- */}
           </div>
 
           {/* Dynamic Editor Section */}
           {renderEditor()}
         </div>
       </div>
-
+      {/* -------------------------------- Interpretation Modal -------------------------------- */}
       <CustomModal
         className="w-full max-w-4xl"
         open={isInterpretationModalOpen}
@@ -720,33 +1042,6 @@ const CreateNewTest: React.FC = () => {
           <Interpretation
             onClose={() => setIsInterpretationModalOpen(false)}
             onSave={handleInterpretationSave}
-            {...props}
-          />
-        )}
-      />
-
-      <CustomModal
-        className="w-full max-w-3xl"
-        open={isViewCommentModalOpen}
-        setOpen={setIsViewCommentModalOpen}
-        component={(props) => (
-          <ViewComment
-            comments={comments}
-            onClose={() => setIsViewCommentModalOpen(false)}
-            onEdit={handleEditComment}
-            onRemove={handleRemoveComment}
-            {...props}
-          />
-        )}
-      />
-
-      <CustomModal
-        open={isCommentModalOpen}
-        setOpen={setIsCommentModalOpen}
-        component={(props) => (
-          <AddComment
-            onClose={() => setIsCommentModalOpen(false)}
-            onSave={handleCommentSave}
             {...props}
           />
         )}

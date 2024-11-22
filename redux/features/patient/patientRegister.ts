@@ -6,16 +6,26 @@ const patientRegisterApi = apiSlice.injectEndpoints({
             query: () => ({
                 url: "/patients/create-patient-id",
                 method: "GET",
+                credentials: "include",
             }),
         }),
         addPatient: builder.mutation({
             query: (data) => ({
-                url: "/patients/register",
+                url: "/patients",
                 method: "POST",
                 body: data,
+                credentials: "include",
+            }),
+        }),
+        updatePatient: builder.mutation({
+            query: (data) => ({
+                url: `/patients/${data.id}`,
+                method: "PUT",
+                body: data,
+                credentials: "include",
             }),
         }),
     }),
 });
 
-export const { useGetPatientIdQuery, useAddPatientMutation } = patientRegisterApi;
+export const { useGetPatientIdQuery, useAddPatientMutation, useUpdatePatientMutation } = patientRegisterApi;
