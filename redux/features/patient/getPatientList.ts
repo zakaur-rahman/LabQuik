@@ -9,7 +9,21 @@ const patientListApi = apiSlice.injectEndpoints({
                 credentials: "include",
             }),
         }),
+        getPatientDetails: builder.query({
+            query: (patientId) => ({
+                url: `/patients/get-patient-by-id/${patientId}`,
+                method: "GET",
+                credentials: "include",
+            }),
+        }),
+        deletePatient: builder.mutation({
+            query: (patientId) => ({
+                url: `/patients/delete/${patientId}`,
+                method: "DELETE",
+                credentials: "include",
+            }),
+        }),
     }),
 });
 
-export const { useGetPatientListQuery } = patientListApi;
+export const { useGetPatientListQuery, useGetPatientDetailsQuery, useDeletePatientMutation } = patientListApi;
