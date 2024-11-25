@@ -67,7 +67,7 @@ const Page = () => {
         return <UpdateReport />;
       case "PatientDetails":
         return patientId ? (
-          <PatientDetails patientId={patientId} medicalHistory={[]} />
+          <PatientDetails patientId={patientId}  />
         ) : null;
       case "TestList":
         return <TestList />;
