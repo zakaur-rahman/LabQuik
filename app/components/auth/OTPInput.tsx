@@ -37,7 +37,7 @@ export const OTPInput: React.FC<OTPInputProps> = ({
 
   useEffect(() => {
     if (isSuccess) {
-      toast.success("Account activated successfully");
+      toast.success("Logged in successfully");
       redirect("/admin");
     }
     if (error) {
@@ -182,7 +182,7 @@ export const OTPInput: React.FC<OTPInputProps> = ({
         className="w-full bg-blue-500 text-white py-[6px] mt-4 max-w-[200px] rounded-md hover:bg-blue-600 transition-colors"
         onClick={handleVerify}
       >
-        Verify and Create
+        Verify
       </button>
     </div>
   );

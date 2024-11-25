@@ -119,6 +119,7 @@ const BillingTab: React.FC<BillingTabProps> = ({ onClose, values, onRegisterAndP
       const errorData = addPatientError as any;
       toast.error(errorData.error || "Failed to register patient");
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isAddedPatient, addedPatientData, addPatientError, onClose, onRegisterAndPrintBill]);
 
   const {
