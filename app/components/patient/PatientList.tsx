@@ -14,9 +14,10 @@ import NewModal from "@/app/utils/NewModal";
 import Invoice from "./Invoice";
 import CustomModal from "@/app/utils/CustomModal";
 import ClearDue from "./ClearDue";
-import { useGetPatientListQuery } from "@/redux/features/patient/getPatientList";
+import { useGetPatientListQuery, useDeletePatientMutation } from "@/redux/features/patient/getPatientList";
 import { useSelector } from "react-redux";
 import EditPatientDetails from "./EditPatientDetails";
+import DeleteConfirmation from './DeleteConfirmation';
 
 interface Patient {
   id: string;
@@ -61,6 +62,8 @@ const PatientList: React.FC<PatientListProps> = ({ onPatientSelect }) => {
   const [isEditPatientModalOpen, setIsEditPatientModalOpen] = useState(false);
   const [selectedPatientForEdit, setSelectedPatientForEdit] =
     useState<Patient | null>(null);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [selectedPatientForDelete, setSelectedPatientForDelete] = useState<string | null>(null);
 
   useEffect(() => {
     setIsMounted(true);
@@ -70,6 +73,7 @@ const PatientList: React.FC<PatientListProps> = ({ onPatientSelect }) => {
     data: patientsData,
     isLoading: patientsLoading,
     isError: patientsError,
+    refetch,
   } = useGetPatientListQuery(undefined, {
     skip: !token, // Skip the query if there's no token
   });
@@ -191,12 +195,19 @@ const PatientList: React.FC<PatientListProps> = ({ onPatientSelect }) => {
   const handleClearDueModalClose = () => {
     setIsClearDueModalOpen(false);
     setSelectedPatientForClearDue(null);
+    refetch();
   };
 
   const handleEditPatientClick = (patient: Patient) => {
     const patientData = invoiceData.find((p) => p.patientId === patient.id);
     setSelectedPatientForEdit(patientData);
     setIsEditPatientModalOpen(true);
+  };
+
+  const handleDeleteClick = (patientId: string, event: React.MouseEvent) => {
+    event.stopPropagation();
+    setSelectedPatientForDelete(patientId);
+    setIsDeleteModalOpen(true);
   };
 
   if (patientsLoading) {
@@ -412,7 +423,10 @@ const PatientList: React.FC<PatientListProps> = ({ onPatientSelect }) => {
                             >
                               <Edit2 size={16} className="mr-1" /> Edit Patient
                             </button>
-                            <button className="bg-red-500 text-white px-4 py-1 rounded flex items-center">
+                            <button 
+                              className="bg-red-500 text-white px-4 py-1 rounded flex items-center"
+                              onClick={(e) => handleDeleteClick(patient.id, e)}
+                            >
                               <Trash2 size={16} className="mr-1" /> Delete
                             </button>
                           </div>
@@ -462,6 +476,20 @@ const PatientList: React.FC<PatientListProps> = ({ onPatientSelect }) => {
             <EditPatientDetails {...props} selectedPatientForEdit={selectedPatientForEdit} />
           )}
           className="w-full max-w-6xl mx-4 h-[60vh] overflow-y-scroll"
+        />
+      )}
+      {isDeleteModalOpen && selectedPatientForDelete && (
+        <CustomModal
+          open={isDeleteModalOpen}
+          setOpen={setIsDeleteModalOpen}
+          component={(props) => (
+            <DeleteConfirmation
+              {...props}
+              patientId={selectedPatientForDelete}
+              onDeleteSuccess={refetch}
+            />
+          )}
+          className="w-full max-w-md mx-4"
         />
       )}
     </main>
