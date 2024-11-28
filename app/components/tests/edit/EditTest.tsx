@@ -3,7 +3,7 @@ import { Trash2Icon, PlusIcon, PencilIcon } from "lucide-react";
 import { DropResult } from "@hello-pangea/dnd";
 import { TestFieldsTable } from "../TestFieldsTable";
 import { TextEditor } from "../TextEditor";
-import CustomDropdown from "../CustomDropdown";
+import CustomDropdown from "../createTest/CustomDropdown";
 import CustomModal from "@/app/utils/CustomModal";
 import AddComment from "../../common/AddComment";
 import ViewComment from "../../common/ViewComment";

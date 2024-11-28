@@ -1,48 +1,28 @@
 import React, { useEffect, useState } from "react";
 import { Search } from "lucide-react";
-
-interface PatientDetail {
-  name: string;
-  id: string;
-  gender: string;
-  age: number;
-  contact: string;
-  email: string;
-  address: string;
-}
-
-interface MedicalHistory {
-  date: string;
-  billId: string;
-  tests: string;
-  rfDoctor: string;
-  due: number;
-  amount: number;
-  status: string;
-}
+import { useGetPatientDetailsQuery } from "@/redux/features/patient/getPatientList";
+import { toast } from "react-hot-toast";
 
 interface PatientDetailsProps {
   patientId: string;
-  medicalHistory: Array<MedicalHistory>;
 }
 
-const PatientDetails: React.FC<PatientDetailsProps> = ({ patientId, medicalHistory }) => {
-  const [patient, setPatient] = useState<PatientDetail | null>(null);
-
+const PatientDetails: React.FC<PatientDetailsProps> = ({ patientId }) => {
+  const [patient, setPatient] = useState<any>({});
+  const [medicalHistory, setMedicalHistory] = useState<any[]>([]);
+  const {
+    data: patientDetails,
+    isError,
+    error,
+  } = useGetPatientDetailsQuery(patientId);
   useEffect(() => {
-    // Fetch patient data and medical history based on patientId
-    // This is where you'd typically make an API call
-    // For now, we'll use dummy data
-    setPatient({
-      name: "Ghazi Sultan",
-      id: "241020001",
-      gender: "male",
-      age: 26,
-      contact: "9342387132",
-      email: "",
-      address: "delhi",
-    });
-  }, [patientId]);
+    if (patientDetails?.patient) {
+      setPatient(patientDetails.patient);
+    }
+    if (isError) {
+      console.log(error);
+    }
+  }, [patientDetails, isError]);
 
   if (!patient) {
     return <div>Loading...</div>;
@@ -54,17 +34,19 @@ const PatientDetails: React.FC<PatientDetailsProps> = ({ patientId, medicalHisto
       <div className="bg-gray-100 p-4 rounded-lg">
         <div className="flex items-center">
           <div className="w-16 h-16 bg-gray-300 rounded-full mr-4 flex items-center justify-center text-2xl text-gray-600">
-            {patient.name[0]}
+            {patient?.firstName?.[0]}
           </div>
           <div className="mr-12">
-            <h3 className="text-lg font-semibold">{patient.name}</h3>
-            <p className="text-gray-600">#{patient.id}</p>
+            <h3 className="text-lg font-semibold">
+              {patient.firstName} {patient.lastName}
+            </h3>
+            <p className="text-gray-600">#{patient.patientId}</p>
           </div>
           <div className="flex-1 grid grid-cols-5 pl-12 gap-4">
             <InfoItem label="Gender" value={patient.gender} />
             <InfoItem label="Age" value={`${patient.age} year`} />
-            <InfoItem label="Contact" value={patient.contact} />
-            <InfoItem label="Email Id" value={patient.email || '-'} />
+            <InfoItem label="Contact" value={patient.phoneNumber} />
+            <InfoItem label="Email Id" value={patient.email || "-"} />
             <InfoItem label="Address" value={patient.address} />
           </div>
         </div>
@@ -98,24 +80,29 @@ const PatientDetails: React.FC<PatientDetailsProps> = ({ patientId, medicalHisto
             </tr>
           </thead>
           <tbody>
-            {medicalHistory.map((history, index) => (
-              <tr key={index} className="border-b">
-                <td className="p-2">{history.date}</td>
-                <td className="p-2">{history.billId}</td>
-                <td className="p-2">{history.tests}</td>
-                <td className="p-2">{history.rfDoctor}</td>
-                <td className="p-2 text-right">{history.due}</td>
-                <td className="p-2 text-right">{history.amount}</td>
-                <td className="p-2">
-                  <span className="text-blue-500">• {history.status}</span>
-                </td>
-                <td className="p-2">
-                  <button className="bg-gray-200 text-gray-700 px-3 py-1 rounded text-sm">
-                    View Report
-                  </button>
-                </td>
-              </tr>
-            ))}
+            <tr className="border-b">
+              <td className="p-2">
+                {new Date(patient?.bill?.createdAt).toLocaleDateString()}
+              </td>
+              <td className="p-2">{patient.bill?.billId || "-"}</td>
+              <td className="p-2">
+                {patient.bill?.tests.map((test: any) => test.name).join(", ") ||
+                  "-"}
+              </td>
+              <td className="p-2">{patient?.organization?.name || "-"}</td>
+              <td className="p-2 text-right">{patient.bill?.due || "0"}</td>
+              <td className="p-2 text-right">{patient.bill?.grandTotal || "0"}</td>
+              <td className="p-2">
+                <span className="text-blue-500">
+                  • {patient?.status || "-"}
+                </span>
+              </td>
+              <td className="p-2">
+                <button className="bg-gray-200 text-gray-700 px-3 py-1 rounded text-sm">
+                  View Report
+                </button>
+              </td>
+            </tr>
           </tbody>
         </table>
       </div>

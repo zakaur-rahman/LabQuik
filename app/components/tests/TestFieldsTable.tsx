@@ -1,31 +1,8 @@
-import React, { useState } from 'react';
-import { Trash2, GripVertical } from 'lucide-react';
+import React, { useState } from "react";
+import { Trash2, GripVertical } from "lucide-react";
 
 // Use the TableData interface
-interface TableData {
-  name: string;
-  field: string;
-  units: string;
-  formula: string;
-  testMethod: string;
-  fieldType: string;
-  range: {
-    numeric: {
-      minRange: string;
-      maxRange: string;
-    };
-    text: string;
-    numeric_unbound: {
-      comparisonOperator: string;
-      value: string;
-    };
-    multiple_range: string;
-    custom:{
-      options:string[];
-      defaultOption:string;
-    };
-  };
-}
+import { TestData } from "./createTest/CreateNewTest";
 
 interface SingleFieldTableData {
   fieldType: string;
@@ -54,99 +31,228 @@ interface SingleFieldTableData {
 interface MultipleFieldsTableData {
   titleName: string;
   fieldType: string;
-  finalMultipleFieldsData: MultipleFieldsTableData[];
+  multipleFieldsData: MultipleFieldsTableData[];
 }
 
-
-
 interface TestFieldsTableProps {
-  testFields: (SingleFieldTableData | MultipleFieldsTableData)[];
-  onDragEnd: (result: { source: { index: number }, destination: { index: number } }) => void;
-  onDelete?: (index: number) => void;
-  onRowSelect: (field: SingleFieldTableData | MultipleFieldsTableData | null, index: number) => void;
+  testFields: TestData["finalData"];
+  onDragEnd: (result: {
+    source: { index: number };
+    destination: { index: number };
+  }) => void;
+  onDelete?: (parentIndex: number, childIndex?: number) => void;
+  onRowSelect: (
+    field: SingleFieldTableData | MultipleFieldsTableData | null,
+    parentIndex: number,
+    childIndex?: number
+  ) => void;
   selectedRowIndex: number | null;
+  selectedChildIndex: number | null;
   setFormula: (isFormula: boolean) => void;
   isFormula: boolean;
 }
 
-const TableRows: React.FC<{
+const TableRowsForSingleField: React.FC<{
   fields: TestFieldsTableProps["testFields"];
-  onDelete?: (index: number) => void;
+  onDelete?: (parentIndex: number, childIndex?: number) => void;
   onDragStart: (e: React.DragEvent, index: number) => void;
   onDragOver: (e: React.DragEvent, index: number) => void;
   onDragEnd: () => void;
-  onRowSelect: (field: SingleFieldTableData | MultipleFieldsTableData | null, index: number) => void;
+  onRowSelect: (
+    field: SingleFieldTableData | MultipleFieldsTableData | null,
+    parentIndex: number,
+    childIndex?: number
+  ) => void;
   selectedRowIndex: number | null;
+  selectedChildIndex: number | null;
   setFormula: (formula: boolean) => void;
   isFormula: boolean;
-}> = React.memo(({ 
-  fields, 
-  onDelete,
-  onDragStart,
-  onDragOver,
-  onDragEnd,
-  onRowSelect,
-  selectedRowIndex,
-  setFormula,
-  isFormula,
-}) => (
-  <>
-    {fields.map((field, index) => (
-      <tr
-        key={`${(field as SingleFieldTableData).name || (field as MultipleFieldsTableData).titleName}-${index}`}
-        draggable
-        onDragStart={(e) => onDragStart(e, index)}
-        onDragOver={(e) => onDragOver(e, index)}
-        onDragEnd={onDragEnd}
-        className={`border-b hover:bg-gray-50 ${selectedRowIndex === index ? 'bg-blue-100' : ''}`}
-      >
-        <td className="p-2 w-8 cursor-grab">
-          <GripVertical className="w-4 h-4 text-gray-400" />
-        </td>
-        <td className="p-2 w-8">
-          <input 
-            type="checkbox" 
-            className="rounded"
-            checked={selectedRowIndex === index}
-            onChange={() => onRowSelect(selectedRowIndex === index ? null : field, index)}
-          />
-        </td>
-        <td className="p-2 min-w-[120px]">{(field as SingleFieldTableData).name}</td>
-        <td className="p-2 min-w-[120px]">{(field as SingleFieldTableData).field}</td>
-        <td className="p-2 min-w-[100px]">{(field as SingleFieldTableData).units}</td>
-        <td className="p-2 min-w-[100px]">
-          {(field as SingleFieldTableData).range.numeric.minRange && (field as SingleFieldTableData).range.numeric.maxRange
-            ? `${(field as SingleFieldTableData).range.numeric.minRange} - ${(field as SingleFieldTableData).range.numeric.maxRange}`
-            : (field as SingleFieldTableData).range.text || `${(field as SingleFieldTableData).range.numeric_unbound.comparisonOperator} ${(field as SingleFieldTableData).range.numeric_unbound.value}` || (field as SingleFieldTableData).range.multiple_range}
-        </td>
-        <td className="p-2 w-20">
-          <input
-            type="checkbox"
-            className="rounded"
-            checked={selectedRowIndex === index && isFormula}
-            onChange={() => {
-              if (selectedRowIndex === index) {
-                setFormula(!isFormula);
-              }
-            }}
-            disabled={selectedRowIndex !== index}
-          />
-        </td>
-        <td className="p-2 w-8">
-          <button
-            aria-label="Delete"
-            className="text-gray-400 hover:text-gray-600"
-            onClick={() => onDelete?.(index)}
-          >
-            <Trash2 className="w-4 h-4" />
-          </button>
-        </td>
-      </tr>
-    ))}
-  </>
-));
+}> = React.memo(
+  ({
+    fields,
+    onDelete,
+    onDragStart,
+    onDragOver,
+    onDragEnd,
+    onRowSelect,
+    selectedRowIndex,
+    selectedChildIndex,
+    setFormula,
+    isFormula,
+  }) => (
+    <>
+      {fields.map((field, index) => {
+        // Handle multiple fields case
+        if ("multipleFieldsData" in field) {
+          return (
+            <React.Fragment key={`${field.titleName}-${index}`}>
+              {/* Parent row */}
+              <tr
+                className={`border-b bg-gray-50 ${
+                  selectedRowIndex === index && selectedChildIndex === null ? "bg-blue-100" : ""
+                }`}
+              >
+                <td className="p-2 w-8">
+                  <input
+                    type="checkbox"
+                    className="rounded"
+                    checked={selectedRowIndex === index && selectedChildIndex === null}
+                    onChange={() => onRowSelect(field, index)}
+                  />
+                </td>
+                <td className="p-2 w-8"></td>
+                <td colSpan={4} className="p-2 text-left font-medium text-sm">
+                  Test Name: {field.titleName}
+                </td>
+                <td className="p-2 w-20"></td>
+                <td className="p-2 w-8">
+                  <button
+                    aria-label="Delete"
+                    className="text-gray-400 hover:text-gray-600"
+                    onClick={() => onDelete?.(index)}
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </td>
+              </tr>
+              {/* Child rows */}
+              {field.multipleFieldsData.map((subField, subIndex) => (
+                <tr
+                  key={`${subField.name}-${index}-${subIndex}`}
+                  draggable
+                  onDragStart={(e) => onDragStart(e, index)}
+                  onDragOver={(e) => onDragOver(e, index)}
+                  onDragEnd={onDragEnd}
+                  className={`border-b hover:bg-gray-50 ${
+                    selectedRowIndex === index && selectedChildIndex === subIndex ? "bg-blue-100" : ""
+                  }`}
+                >
+                  <td className="p-2 w-8">
+                    <GripVertical className="w-4 h-4 text-gray-400 cursor-grab" />
+                  </td>
+                  <td className="p-2 w-8">
+                    <input
+                      type="checkbox"
+                      className="rounded"
+                      checked={selectedRowIndex === index && selectedChildIndex === subIndex}
+                      onChange={() => onRowSelect(subField, index, subIndex)}
+                    />
+                  </td>
+                  <td className="p-2 min-w-[120px] pl-8">{subField.name}</td>
+                  <td className="p-2 min-w-[120px]">{subField.field}</td>
+                  <td className="p-2 min-w-[100px]">{subField.units}</td>
+                  <td className="p-2 min-w-[100px]">
+                    {renderRange(subField.range, subField.field)}
+                  </td>
+                  <td className="p-2 w-20">
+                    <input
+                      type="checkbox"
+                      className="rounded"
+                      checked={selectedRowIndex === index && isFormula}
+                      onChange={(e) => {
+                        if (selectedRowIndex === index) {
+                          setFormula(e.target.checked);
+                        }
+                      }}
+                      disabled={selectedRowIndex !== index}
+                    />
+                  </td>
+                  <td className="p-2 w-8">
+                    <button
+                      aria-label="Delete"
+                      className="text-gray-400 hover:text-gray-600"
+                      onClick={() => onDelete?.(index, subIndex)}
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </React.Fragment>
+          );
+        }
 
-TableRows.displayName = 'TableRows'; 
+        // Handle single field case
+        return (
+          <tr
+            key={`${field.name}-${index}`}
+            draggable
+            onDragStart={(e) => onDragStart(e, index)}
+            onDragOver={(e) => onDragOver(e, index)}
+            onDragEnd={onDragEnd}
+            className={`border-b hover:bg-gray-50 ${
+              selectedRowIndex === index && selectedChildIndex === null ? "bg-blue-100" : ""
+            }`}
+          >
+            <td className="p-2 w-8 cursor-grab">
+              <GripVertical className="w-4 h-4 text-gray-400" />
+            </td>
+            <td className="p-2 w-8">
+              <input
+                type="checkbox"
+                className="rounded"
+                checked={selectedRowIndex === index && selectedChildIndex === null}
+                onChange={() => onRowSelect(field, index)}
+              />
+            </td>
+            <td className="p-2 min-w-[120px]">{field.name}</td>
+            <td className="p-2 min-w-[120px]">{field.field}</td>
+            <td className="p-2 min-w-[100px]">{field.units}</td>
+            <td className="p-2 min-w-[100px]">
+              {renderRange(field.range, field.field)}
+            </td>
+            <td className="p-2 w-20">
+              <input
+                type="checkbox"
+                className="rounded"
+                checked={selectedRowIndex === index && isFormula}
+                onChange={(e) => {
+                  if (selectedRowIndex === index) {
+                    setFormula(e.target.checked);
+                  }
+                }}
+                disabled={selectedRowIndex !== index}
+              />
+            </td>
+            <td className="p-2 w-8">
+              <button
+                aria-label="Delete"
+                className="text-gray-400 hover:text-gray-600"
+                onClick={() => onDelete?.(index)}
+              >
+                <Trash2 className="w-4 h-4" />
+              </button>
+            </td>
+          </tr>
+        );
+      })}
+    </>
+  )
+);
+
+TableRowsForSingleField.displayName = "TableRowsForSingleField";
+
+// Add helper function to render range values
+const renderRange = (range: any, fieldType: string) => {
+  switch (fieldType) {
+    case "numeric":
+      return range?.numeric
+        ? `${range.numeric.minRange} - ${range.numeric.maxRange}`
+        : "";
+    case "text":
+      return range?.text || "";
+    case "numeric_unbound":
+      return range?.numeric_unbound
+        ? `${range.numeric_unbound.comparisonOperator} ${range.numeric_unbound.value}`
+        : "";
+    case "multiple_range":
+      return range?.multiple_range || "";
+    case "custom":
+      return range?.custom?.defaultOption || "";
+    default:
+      return "";
+  }
+};
 
 export const TestFieldsTable: React.FC<TestFieldsTableProps> = ({
   testFields,
@@ -154,6 +260,7 @@ export const TestFieldsTable: React.FC<TestFieldsTableProps> = ({
   onDelete,
   onRowSelect,
   selectedRowIndex,
+  selectedChildIndex,
   isFormula,
   setFormula,
 }) => {
@@ -162,7 +269,7 @@ export const TestFieldsTable: React.FC<TestFieldsTableProps> = ({
 
   const handleDragStart = (e: React.DragEvent, index: number) => {
     setDraggedIndex(index);
-    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.effectAllowed = "move";
   };
 
   const handleDragOver = (e: React.DragEvent, index: number) => {
@@ -177,15 +284,19 @@ export const TestFieldsTable: React.FC<TestFieldsTableProps> = ({
     if (draggedIndex !== null && dragOverIndex !== null) {
       onDragEnd({
         source: { index: draggedIndex },
-        destination: { index: dragOverIndex }
+        destination: { index: dragOverIndex },
       });
     }
     setDraggedIndex(null);
     setDragOverIndex(null);
   };
 
-  const handleRowSelect = (field: SingleFieldTableData | MultipleFieldsTableData | null, index: number) => {
-    onRowSelect(field, index);
+  const handleRowSelect = (
+    field: SingleFieldTableData | MultipleFieldsTableData | null,
+    parentIndex: number,
+    childIndex?: number
+  ) => {
+    onRowSelect(field, parentIndex, childIndex);
     setFormula(false); // Reset formula when selecting/deselecting a row
   };
 
@@ -196,26 +307,35 @@ export const TestFieldsTable: React.FC<TestFieldsTableProps> = ({
           <tr className="border-b bg-gray-50">
             <th className="p-2 w-8"></th>
             <th className="p-2 w-8"></th>
-            <th className="p-2 text-left font-medium text-sm min-w-[120px]">Name</th>
-            <th className="p-2 text-left font-medium text-sm min-w-[120px]">Field</th>
-            <th className="p-2 text-left font-medium text-sm min-w-[100px]">Units</th>
-            <th className="p-2 text-left font-medium text-sm min-w-[100px]">Range</th>
+            <th className="p-2 text-left font-medium text-sm min-w-[120px]">
+              Name
+            </th>
+            <th className="p-2 text-left font-medium text-sm min-w-[120px]">
+              Field
+            </th>
+            <th className="p-2 text-left font-medium text-sm min-w-[100px]">
+              Units
+            </th>
+            <th className="p-2 text-left font-medium text-sm min-w-[100px]">
+              Range
+            </th>
             <th className="p-2 text-left font-medium text-sm w-20">Formula</th>
             <th className="p-2 w-8">Delete</th>
           </tr>
         </thead>
         <tbody>
-          <TableRows 
-            fields={testFields} 
+          <TableRowsForSingleField
+            fields={testFields}
             onDelete={onDelete}
             onDragStart={handleDragStart}
             onDragOver={handleDragOver}
             onDragEnd={handleDragEnd}
             onRowSelect={handleRowSelect}
             selectedRowIndex={selectedRowIndex}
+            selectedChildIndex={selectedChildIndex}
             setFormula={setFormula}
             isFormula={isFormula}
-          /> 
+          />
         </tbody>
       </table>
     </div>

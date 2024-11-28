@@ -52,6 +52,7 @@ interface MultipleFieldsFormProps {
   setTitleName: (titleName: string) => void;
   errors: any;
   touched: any;
+  isEditing?: boolean;
 }
 
 const TEST_METHODS: TestMethod[] = ["pcr", "elisa", "immunoassay", ""];
@@ -69,7 +70,8 @@ const MultipleFieldsForm: React.FC<MultipleFieldsFormProps> = ({
   titleName,
   setTitleName,
   errors,
-  touched
+  touched,
+  isEditing = false,
 }) => {
   // Memoized handlers for better performance
   const handleTitleNameChange = useCallback(
@@ -177,6 +179,7 @@ const MultipleFieldsForm: React.FC<MultipleFieldsFormProps> = ({
             <label className={labelClass}>Range:</label>
             <div className="flex gap-2 items-center justify-between">
               <select
+                title="Comparison Operator"
                 name="range.numeric_unbound.comparisonOperator"
                 value={testFieldsData?.range?.numeric_unbound?.comparisonOperator}
                 onChange={handleTestFieldsDataChange}
@@ -252,72 +255,80 @@ const MultipleFieldsForm: React.FC<MultipleFieldsFormProps> = ({
         </div>
       )}
 
-      <div>
-        <label className={labelClass}>Test Name:</label>
-        <input
-          type="text"
-          name="name"
-          value={testFieldsData.name}
-          onChange={handleTestFieldsDataChange}
-          className={inputClass}
-          required
-        />
-      </div>
+      { (
+        <>
+          <div>
+            <label className={labelClass}>Test Name:</label>
+            <input
+              type="text"
+              title="Test Name"
+              id="name"
+              name="name"
+              value={testFieldsData.name}
+              onChange={handleTestFieldsDataChange}
+              className={inputClass}
+              required
+            />
+          </div>
 
-      <div>
-        <label className={labelClass}>Test Method:</label>
-        <select
-          name="testMethod"
-          value={testFieldsData.testMethod}
-          onChange={handleTestFieldsDataChange}
-          className={inputClass}
-          required
-        >
-          <option value="">Select Test Method</option>
-          {TEST_METHODS.filter(Boolean).map((method) => (
-            <option key={method} value={method}>
-              {method.toUpperCase()}
-            </option>
-          ))}
-        </select>
-      </div>
+          <div>
+            <label className={labelClass}>Test Method:</label>
+            <select
+              title="Test Method"
+              name="testMethod"
+              value={testFieldsData.testMethod}
+              onChange={handleTestFieldsDataChange}
+              className={inputClass}
+              required
+            >
+              <option value="">Select Test Method</option>
+              {TEST_METHODS.filter(Boolean).map((method) => (
+                <option key={method} value={method}>
+                  {method.toUpperCase()}
+                </option>
+              ))}
+            </select>
+          </div>
 
-      <div>
-        <label className={labelClass}>Field:</label>
-        <select
-          name="field"
-          value={testFieldsData.field}
-          onChange={handleTestFieldsDataChange}
-          className={inputClass}
-          required
-        >
-          {FIELD_TYPES.map((type) => (
-            <option key={type} value={type}>
-              {type.replace("_", " ").charAt(0).toUpperCase() + type.slice(1)}
-            </option>
-          ))}
-        </select>
-      </div>
+          <div>
+            <label className={labelClass}>Field:</label>
+            <select
+              title="Field"
+              name="field"
+              value={testFieldsData.field}
+              onChange={handleTestFieldsDataChange}
+              className={inputClass}
+              required
+            >
+              {FIELD_TYPES.map((type) => (
+                <option key={type} value={type}>
+                  {type.replace("_", " ").charAt(0).toUpperCase() + type.slice(1)}
+                </option>
+              ))}
+            </select>
+          </div>
 
-      <div>
-        <label className={labelClass}>Units:</label>
-        <input
-          type="text"
-          name="units"
-          value={testFieldsData.units}
-          onChange={handleTestFieldsDataChange}
-          className={inputClass}
-        />
-      </div>
+          <div>
+            <label className={labelClass}>Units:</label>
+            <input
+              type="text"
+              name="units"
+              value={testFieldsData.units}
+              onChange={handleTestFieldsDataChange}
+              className={inputClass}
+            />
+          </div>
 
-      {renderRangeField()}
+          {renderRangeField()}
+        </>
+      )}
 
       <div className="flex gap-2">
         <button
           type="submit"
           className={buttonClass}
         >
-          {fieldType === "Multiple fields" ? "Save Multiple Fields" : "Add Field"}
+          {isEditing ? "Update Field" : fieldType === "Multiple fields" ? "Save Multiple Fields" : "Add Field"}
         </button>
         {fieldType === "Multiple fields" && titleName.trim() && (
           <button

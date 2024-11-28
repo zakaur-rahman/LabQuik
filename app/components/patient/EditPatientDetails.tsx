@@ -11,7 +11,7 @@ import * as yup from "yup";
 import { useGetSampleCollectorsQuery } from "@/redux/features/patient/addSampleCollector";
 import { useGetOrganizationsQuery } from "@/redux/features/patient/addOrganization";
 import { useGetSampleCollectionAddressQuery } from "@/redux/features/patient/addSampleCollectionAddress";
-import { useGetPatientIdQuery } from "@/redux/features/patient/patientRegister";
+import { useUpdatePatientMutation } from "@/redux/features/patient/patientRegister";
 import { useFormik } from "formik";
 const SampleCollector = dynamic(() => import("../common/SampleCollector"), {
   ssr: false,
@@ -116,13 +116,6 @@ const EditPatientDetails = ({
   const [formattedCollectionAddresses, setFormattedCollectionAddresses] =
     useState<SampleCollectorData[]>([]);
 
-  // Add a reset trigger
-  const { data: patientIdData, isLoading: patientIdLoading } =
-    useGetPatientIdQuery(undefined, {
-      skip: !token, // Skip the query if there's no token
-      refetchOnMountOrArgChange: true,
-    });
-
   const { data: sampleCollectorsData, isLoading: sampleCollectorsLoading } =
     useGetSampleCollectorsQuery(undefined, {
       skip: !token, // Skip the query if there's no token
@@ -139,6 +132,11 @@ const EditPatientDetails = ({
   } = useGetSampleCollectionAddressQuery(undefined, {
     skip: !token, // Skip the query if there's no token
   });
+
+  const [
+    updatePatient,
+    { isLoading: isUpdatingPatient, isSuccess: isUpdatedPatient },
+  ] = useUpdatePatientMutation();
 
   useEffect(() => {
     if (sampleCollectorsData) {
@@ -175,12 +173,21 @@ const EditPatientDetails = ({
     initialValues: initialFormValues,
     validationSchema: schema,
     onSubmit: (values) => {
-      console.log({
+      updatePatient({
         ...values,
         bill: selectedPatientForEdit.bill,
       });
     },
   });
+
+  useEffect(() => {
+    if (isUpdatingPatient) {
+      console.log("Updating patient...");
+    }
+    if (isUpdatedPatient) {
+      console.log("Patient updated successfully");
+    }
+  }, [isUpdatingPatient, isUpdatedPatient]);
 
   const { handleChange, handleSubmit, values, errors, touched, handleBlur } =
     formik;

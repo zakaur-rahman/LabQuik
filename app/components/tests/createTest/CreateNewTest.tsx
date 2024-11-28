@@ -44,7 +44,7 @@ interface MultipleFieldsTableData {
   multipleFieldsData: FieldTableData[];
 }
 
-interface TestData {
+export interface TestData {
   finalData: (FieldTableData | MultipleFieldsTableData)[];
 }
 
@@ -118,18 +118,20 @@ const INITIAL_VALUES = {
     fieldType: "Multiple fields",
     multipleFieldsData: [],
   },
-  test: {
-    finalData: [],
-  },
+  
+  finalData: [],
 };
 
 const CreateNewTest: React.FC = () => {
   const [multipleFieldsData, setMultipleFieldsData] = useState<MultipleFieldsTableData>(INITIAL_VALUES.multipleFields);
-  const [testData, setTestData] = useState<TestData>(INITIAL_VALUES.test);
+  const [testData, setTestData] = useState<TestData["finalData"]>(INITIAL_VALUES.finalData);
   const [isFormula, setIsFormula] = useState(false);
   const [isInterpretationModalOpen, setIsInterpretationModalOpen] = useState(false);
   const [fieldType, setFieldType] = useState("Single field");
   const [titleName, setTitleName] = useState("");
+  const [selectedRowIndex, setSelectedRowIndex] = useState<number | null>(null);
+  const [selectedChildIndex, setSelectedChildIndex] = useState<number | null>(null);
+  const [isEditing, setIsEditing] = useState(false);
 
   // Basic info form handling
   const basicInfoForm = useFormik({
@@ -138,38 +140,51 @@ const CreateNewTest: React.FC = () => {
     onSubmit: () => {},
   });
 
-  // Fields form handling
-  const fieldsForm = useFormik({
-    initialValues: INITIAL_VALUES.fieldData,
-    onSubmit: useCallback(async (values: FieldTableData) => {
+  // Define handleFormSubmit first, without using fieldsForm
+  const handleFormSubmit = useCallback(async (values: FieldTableData, formikHelpers: any) => {
+    if (!isEditing) {
       if (fieldType === "Single field") {
-        setTestData(prev => ({
-          ...prev,
-          finalData: [...prev.finalData, values],
-        }));
-        fieldsForm.resetForm();
+        setTestData(prev => [...prev, values]);
+        formikHelpers.resetForm();
       } else if (fieldType === "Multiple fields" && titleName) {
-        // Create the new state first
         const updatedMultipleFieldsData = {
           titleName,
           fieldType: "Multiple fields",
           multipleFieldsData: [...multipleFieldsData.multipleFieldsData, values]
         };
-
-        // Update testData with the new complete state
-        setTestData(prev => ({
-          ...prev,
-          finalData: [...prev.finalData, updatedMultipleFieldsData],
-        }));
-        
-        // Reset everything
+        setTestData(prev => [...prev, updatedMultipleFieldsData]);
         setMultipleFieldsData(INITIAL_VALUES.multipleFields);
-        fieldsForm.resetForm();
+        formikHelpers.resetForm();
         setTitleName("");
         setFieldType("Single field");
       }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [fieldType, titleName, multipleFieldsData]),
+    } else {
+      // Handle updates...
+      setTestData(prev => {
+        const newData = [...prev];
+        if (selectedRowIndex === null) return prev;
+
+        const currentField = newData[selectedRowIndex];
+        if ("multipleFieldsData" in currentField) {
+          currentField.titleName = titleName;
+        } else {
+          newData[selectedRowIndex] = values;
+        }
+        return newData;
+      });
+
+      setIsEditing(false);
+      setSelectedRowIndex(null);
+      formikHelpers.resetForm();
+      setTitleName("");
+      setFieldType("Single field");
+    }
+  }, [fieldType, titleName, multipleFieldsData, isEditing, selectedRowIndex]);
+
+  // Single fieldsForm definition
+  const fieldsForm = useFormik({
+    initialValues: INITIAL_VALUES.fieldData,
+    onSubmit: handleFormSubmit,
   });
 
   // Memoized handlers
@@ -197,12 +212,77 @@ const CreateNewTest: React.FC = () => {
           titleName,
           multipleFieldsData: [...prev.multipleFieldsData, fieldsForm.values],
         };
-        console.log("Updated multipleFieldsData:", newState);
         return newState;
       });
       fieldsForm.resetForm();
     }
   }, [fieldType, titleName, fieldsForm]);
+
+  const handleDelete = useCallback((parentIndex: number, childIndex?: number) => {
+    setTestData(prevData => {
+      const newData = [...prevData];
+      
+      // If childIndex is provided, delete the specific child
+      if (typeof childIndex === 'number' && "multipleFieldsData" in newData[parentIndex]) {
+        const parentField = { ...newData[parentIndex] } as MultipleFieldsTableData;
+        const newChildren = [...parentField.multipleFieldsData];
+        newChildren.splice(childIndex, 1);
+        
+        // If no more children, remove the parent as well
+        if (newChildren.length === 0) {
+          newData.splice(parentIndex, 1);
+        } else {
+          parentField.multipleFieldsData = newChildren;
+          newData[parentIndex] = parentField;
+        }
+      } else {
+        // Delete the entire parent (and all its children if any)
+        newData.splice(parentIndex, 1);
+      }
+      
+      return newData;
+    });
+  }, []);
+
+  // Add handler for row selection
+  const handleRowSelect = useCallback((field: any, parentIndex: number, childIndex?: number) => {
+    // If trying to select a child row when parent isn't selected, do nothing
+    if (childIndex !== undefined && selectedRowIndex !== parentIndex) {
+      return;
+    }
+
+    if (selectedRowIndex === parentIndex && selectedChildIndex === childIndex) {
+      // Deselect row
+      setSelectedRowIndex(null);
+      setSelectedChildIndex(null);
+      setIsFormula(false);
+      setIsEditing(false);
+      fieldsForm.resetForm();
+      setTitleName("");
+      setFieldType("Single field");
+    } else {
+      setSelectedRowIndex(parentIndex);
+      setSelectedChildIndex(childIndex ?? null);
+      setIsFormula(false);
+      setIsEditing(true);
+
+      // Handle multiple fields parent row
+      if ("multipleFieldsData" in field) {
+        setFieldType("Multiple fields");
+        setTitleName(field.titleName);
+        fieldsForm.resetForm(); // Clear form when selecting parent
+      } else {
+        // Handle single field or child row
+        setFieldType("Single field");
+        fieldsForm.setValues(childIndex !== undefined ? field : field);
+      }
+    }
+  }, [selectedRowIndex, selectedChildIndex, fieldsForm]);
+
+  // Add handler for formula toggle
+  const handleFormulaToggle = useCallback((value: boolean) => {
+    setIsFormula(value);
+  }, []);
 
   return (
     <div className="bg-white p-6 text-black">
@@ -219,7 +299,7 @@ const CreateNewTest: React.FC = () => {
             <button
               onClick={handleSave}
               className="px-3 py-1.5 bg-blue-500 text-white rounded text-sm hover:bg-blue-600 flex items-center"
-              disabled={testData.finalData.length === 0 || titleName !== ""}
+              disabled={testData.length === 0 || titleName !== ""}
             >
               <PencilIcon className="w-4 h-4 mr-1" />
               Save
@@ -266,8 +346,19 @@ const CreateNewTest: React.FC = () => {
               fieldType={fieldType}
               titleName={titleName}
               setTitleName={setTitleName}
+              isEditing={isEditing}
             />
           </div>
+          <TestFieldsTable
+            testFields={testData as TestData["finalData"]}
+            onDelete={handleDelete}
+            onDragEnd={() => {}}
+            onRowSelect={handleRowSelect}
+            selectedRowIndex={selectedRowIndex}
+            selectedChildIndex={selectedChildIndex}
+            setFormula={handleFormulaToggle}
+            isFormula={isFormula}
+          />
         </div>
       </div>
 
