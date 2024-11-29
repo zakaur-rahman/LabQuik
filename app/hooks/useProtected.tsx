@@ -13,7 +13,7 @@ export default function Protected({ children }: ProtectedProps) {
 
     useEffect(() => {
         // Simulate loading state
-        const timer = setTimeout(() => setLoading(false), 100); // Adjust timeout as needed
+        const timer = setTimeout(() => setLoading(false), 500); // Adjust timeout as needed
         return () => clearTimeout(timer);
     }, []);
 
