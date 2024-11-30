@@ -31,7 +31,7 @@ interface SingleFieldTableData {
 interface MultipleFieldsTableData {
   titleName: string;
   fieldType: string;
-  multipleFieldsData: MultipleFieldsTableData[];
+  multipleFieldsData: SingleFieldTableData[];
 }
 
 interface TestFieldsTableProps {
@@ -96,8 +96,14 @@ const TableRowsForSingleField: React.FC<{
                   <input
                     type="checkbox"
                     className="rounded"
-                    checked={selectedRowIndex === index && selectedChildIndex === null}
-                    onChange={() => onRowSelect(field, index)}
+                    checked={selectedRowIndex === index}
+                    onChange={() => {
+                      if (selectedRowIndex === index) {
+                        onRowSelect(null, -1);
+                      } else {
+                        onRowSelect(field, index);
+                      }
+                    }}
                   />
                 </td>
                 <td className="p-2 w-8"></td>
@@ -135,7 +141,16 @@ const TableRowsForSingleField: React.FC<{
                       type="checkbox"
                       className="rounded"
                       checked={selectedRowIndex === index && selectedChildIndex === subIndex}
-                      onChange={() => onRowSelect(subField, index, subIndex)}
+                      disabled={selectedRowIndex !== index}
+                      onChange={() => {
+                        if (selectedRowIndex === index) {
+                          if (selectedChildIndex === subIndex) {
+                            onRowSelect(field, index);
+                          } else {
+                            onRowSelect(subField, index, subIndex);
+                          }
+                        }
+                      }}
                     />
                   </td>
                   <td className="p-2 min-w-[120px] pl-8">{subField.name}</td>
@@ -192,7 +207,14 @@ const TableRowsForSingleField: React.FC<{
                 type="checkbox"
                 className="rounded"
                 checked={selectedRowIndex === index && selectedChildIndex === null}
-                onChange={() => onRowSelect(field, index)}
+                onChange={() => {
+                  // If already selected, deselect it
+                  if (selectedRowIndex === index && selectedChildIndex === null) {
+                    onRowSelect(null, -1);
+                  } else {
+                    onRowSelect(field, index);
+                  }
+                }}
               />
             </td>
             <td className="p-2 min-w-[120px]">{field.name}</td>

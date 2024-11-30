@@ -53,6 +53,8 @@ interface MultipleFieldsFormProps {
   errors: any;
   touched: any;
   isEditing?: boolean;
+  selectedChildIndex: number | null;
+  handleUpdateSubField: () => void;
 }
 
 const TEST_METHODS: TestMethod[] = ["pcr", "elisa", "immunoassay", ""];
@@ -72,6 +74,8 @@ const MultipleFieldsForm: React.FC<MultipleFieldsFormProps> = ({
   errors,
   touched,
   isEditing = false,
+  selectedChildIndex,
+  handleUpdateSubField,
 }) => {
   // Memoized handlers for better performance
   const handleTitleNameChange = useCallback(
@@ -330,13 +334,22 @@ const MultipleFieldsForm: React.FC<MultipleFieldsFormProps> = ({
         >
           {isEditing ? "Update Field" : fieldType === "Multiple fields" ? "Save Multiple Fields" : "Add Field"}
         </button>
-        {fieldType === "Multiple fields" && titleName.trim() && (
+        {fieldType === "Multiple fields" && titleName.trim() && selectedChildIndex === null && (
           <button
             type="button"
             onClick={handleAddSubField}
             className="px-3 py-1.5 text-blue-500 border hover:text-white border-blue-500 rounded text-sm hover:bg-blue-500"
           >
             Add SubField
+          </button>
+        )}
+        {isEditing && selectedChildIndex !== null && (
+          <button
+            type="button"
+            onClick={handleUpdateSubField}
+            className="px-3 py-1.5 text-blue-500 border hover:text-white border-blue-500 rounded text-sm hover:bg-blue-500"
+          >
+            Update SubField
           </button>
         )}
         {isFormula && (
