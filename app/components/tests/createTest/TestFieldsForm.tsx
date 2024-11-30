@@ -37,7 +37,12 @@ export interface FieldTableData {
   range: Range;
 }
 
-type FieldType = "numeric" | "text" | "numeric_unbound" | "multiple_range" | "custom";
+type FieldType =
+  | "numeric"
+  | "text"
+  | "numeric_unbound"
+  | "multiple_range"
+  | "custom";
 type TestMethod = "pcr" | "elisa" | "immunoassay" | "";
 
 interface MultipleFieldsFormProps {
@@ -53,10 +58,22 @@ interface MultipleFieldsFormProps {
   errors: any;
   touched: any;
   isEditing?: boolean;
+  selectedChildIndex: number | null;
+  selectedRowIndex: number | null;
+  handleUpdateSubField: () => void;
+  editTitle: boolean;
+  setEditTitle: (editTitle: boolean) => void;
+  handleUpdateTitle: (newTitle: string) => void;
 }
 
 const TEST_METHODS: TestMethod[] = ["pcr", "elisa", "immunoassay", ""];
-const FIELD_TYPES: FieldType[] = ["numeric", "text", "numeric_unbound", "multiple_range", "custom"];
+const FIELD_TYPES: FieldType[] = [
+  "numeric",
+  "text",
+  "numeric_unbound",
+  "multiple_range",
+  "custom",
+];
 const COMPARISON_OPERATORS: ComparisonOperator[] = ["<=", "<", ">", "=", ">="];
 
 const MultipleFieldsForm: React.FC<MultipleFieldsFormProps> = ({
@@ -72,6 +89,12 @@ const MultipleFieldsForm: React.FC<MultipleFieldsFormProps> = ({
   errors,
   touched,
   isEditing = false,
+  selectedChildIndex,
+  handleUpdateSubField,
+  selectedRowIndex,
+  editTitle,
+  setEditTitle,
+  handleUpdateTitle,
 }) => {
   // Memoized handlers for better performance
   const handleTitleNameChange = useCallback(
@@ -85,18 +108,18 @@ const MultipleFieldsForm: React.FC<MultipleFieldsFormProps> = ({
         ...testFieldsData.range,
         numeric_unbound: {
           ...testFieldsData.range.numeric_unbound,
-          [field]: value
-        }
+          [field]: value,
+        },
       };
-      
+
       // Create a synthetic event-like object
       const syntheticEvent = {
         target: {
           name: `range.numeric_unbound.${field}`,
-          value: value
-        }
+          value: value,
+        },
       };
-      
+
       handleTestFieldsDataChange(syntheticEvent);
     },
     [handleTestFieldsDataChange, testFieldsData.range]
@@ -106,9 +129,9 @@ const MultipleFieldsForm: React.FC<MultipleFieldsFormProps> = ({
     (options: string[]) => {
       const syntheticEvent = {
         target: {
-          name: 'range.custom.options',
-          value: options
-        }
+          name: "range.custom.options",
+          value: options,
+        },
       };
       handleTestFieldsDataChange(syntheticEvent);
     },
@@ -119,19 +142,37 @@ const MultipleFieldsForm: React.FC<MultipleFieldsFormProps> = ({
     (defaultOption: string) => {
       const syntheticEvent = {
         target: {
-          name: 'range.custom.defaultOption',
-          value: defaultOption
-        }
+          name: "range.custom.defaultOption",
+          value: defaultOption,
+        },
       };
       handleTestFieldsDataChange(syntheticEvent);
     },
     [handleTestFieldsDataChange]
   );
 
+  const handleEditToggle = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      setEditTitle(e.target.checked);
+    },
+    [setEditTitle]
+  );
+
+  const handleTitleUpdate = useCallback(() => {
+    if (editTitle && selectedRowIndex !== null) {
+      // Update the title in parent component
+      handleUpdateTitle(titleName);
+      setEditTitle(false);
+    } else {
+      setEditTitle(true);
+    }
+  }, [editTitle, selectedRowIndex, titleName, handleUpdateTitle, setEditTitle]);
+
   // Common styles
   const inputClass = "w-full border rounded px-3 py-1.5 text-sm";
   const labelClass = "text-sm text-gray-600 mb-1";
-  const buttonClass = "px-3 py-1.5 text-white border bg-blue-500 rounded text-sm hover:bg-blue-600";
+  const buttonClass =
+    "px-3 py-1.5 text-white border bg-blue-500 rounded text-sm hover:bg-blue-600";
 
   // Render field-specific range inputs
   const renderRangeField = () => {
@@ -181,18 +222,24 @@ const MultipleFieldsForm: React.FC<MultipleFieldsFormProps> = ({
               <select
                 title="Comparison Operator"
                 name="range.numeric_unbound.comparisonOperator"
-                value={testFieldsData?.range?.numeric_unbound?.comparisonOperator}
+                value={
+                  testFieldsData?.range?.numeric_unbound?.comparisonOperator
+                }
                 onChange={handleTestFieldsDataChange}
                 className={inputClass}
               >
                 <option value="">Select Comparison Operator</option>
                 {COMPARISON_OPERATORS.map((op) => (
                   <option key={op} value={op}>
-                    {op === "<=" ? "less than equal to" :
-                     op === "<" ? "less than" :
-                     op === ">" ? "greater than" :
-                     op === "=" ? "equal to" :
-                     "greater than equal to"}
+                    {op === "<="
+                      ? "less than equal to"
+                      : op === "<"
+                      ? "less than"
+                      : op === ">"
+                      ? "greater than"
+                      : op === "="
+                      ? "equal to"
+                      : "greater than equal to"}
                   </option>
                 ))}
               </select>
@@ -238,24 +285,43 @@ const MultipleFieldsForm: React.FC<MultipleFieldsFormProps> = ({
     }
   };
 
-
   return (
     <form onSubmit={handleAddField} className="space-y-4">
       {fieldType === "Multiple fields" && (
-        <div>
-          <label className={labelClass}>Title Name:</label>
-          <input
-            type="text"
-            name="titleName"
-            data-field="titleName"
-            value={titleName}
-            onChange={handleTitleNameChange}
-            className={inputClass}
-          />
+        <div className="flex flex-row w-full justify-between items-center gap-2">
+          <div className="w-full">
+            <label className={labelClass}>Title Name:</label>
+            <input
+              type="text"
+              name="titleName"
+              value={titleName}
+              onChange={handleTitleNameChange}
+              className={`${inputClass} ${
+                editTitle ? 'border-blue-500' : ''
+              }`}
+              disabled={!editTitle && selectedRowIndex !== null}
+              placeholder="Enter title name"
+            />
+          </div>
+          {selectedRowIndex !== null && selectedChildIndex === null && (
+            <div className="w-auto h-full mt-6 flex flex-row items-center justify-center gap-2">
+              <button
+                type="button"
+                onClick={handleTitleUpdate}
+                className={`px-3 py-1.5 rounded text-sm ${
+                  editTitle 
+                    ? 'bg-blue-500 text-white border border-blue-500 hover:bg-blue-600' 
+                    : 'text-blue-500 border border-blue-500 hover:text-blue-600'
+                }`}
+              >
+                {editTitle ? 'Update' : 'Edit'}
+              </button>
+            </div>
+          )}
         </div>
       )}
 
-      { (
+      {
         <>
           <div>
             <label className={labelClass}>Test Name:</label>
@@ -302,7 +368,8 @@ const MultipleFieldsForm: React.FC<MultipleFieldsFormProps> = ({
             >
               {FIELD_TYPES.map((type) => (
                 <option key={type} value={type}>
-                  {type.replace("_", " ").charAt(0).toUpperCase() + type.slice(1)}
+                  {type.replace("_", " ").charAt(0).toUpperCase() +
+                    type.slice(1)}
                 </option>
               ))}
             </select>
@@ -321,24 +388,35 @@ const MultipleFieldsForm: React.FC<MultipleFieldsFormProps> = ({
 
           {renderRangeField()}
         </>
-      )}
+      }
 
       <div className="flex gap-2">
-        <button
-          type="submit"
-          className={buttonClass}
-        >
-          {isEditing ? "Update Field" : fieldType === "Multiple fields" ? "Save Multiple Fields" : "Add Field"}
-        </button>
-        {fieldType === "Multiple fields" && titleName.trim() && (
-          <button
-            type="button"
-            onClick={handleAddSubField}
-            className="px-3 py-1.5 text-blue-500 border hover:text-white border-blue-500 rounded text-sm hover:bg-blue-500"
-          >
-            Add SubField
+        {fieldType === "Single field" && (
+          <button type="submit" className={buttonClass}>
+            {isEditing ? "Update Field" : "Add Field"}
           </button>
         )}
+        {fieldType === "Multiple fields" &&
+          titleName.trim() &&
+          selectedChildIndex === null && (
+            <button
+              type="button"
+              onClick={handleAddSubField}
+              className="px-3 py-1.5 text-blue-500 border hover:text-white border-blue-500 rounded text-sm hover:bg-blue-500"
+            >
+              Add SubField
+            </button>
+          )}
+        {isEditing && selectedChildIndex !== null && (
+          <button
+            type="button"
+            onClick={handleUpdateSubField}
+            className="px-3 py-1.5 text-blue-500 border hover:text-white border-blue-500 rounded text-sm hover:bg-blue-500"
+          >
+            Update SubField
+          </button>
+        )}
+
         {isFormula && (
           <button
             type="button"
