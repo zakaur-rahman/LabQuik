@@ -64,7 +64,9 @@ const validationSchemas = {
       }),
       text: yup.string().required("Text is required"),
       numeric_unbound: yup.object({
-        comparisonOperator: yup.string().required("Comparison operator is required"),
+        comparisonOperator: yup
+          .string()
+          .required("Comparison operator is required"),
         value: yup.string().required("Value is required"),
       }),
       multiple_range: yup.string().required("Multiple range is required"),
@@ -118,20 +120,27 @@ const INITIAL_VALUES = {
     fieldType: "Multiple fields",
     multipleFieldsData: [],
   },
-  
+
   finalData: [],
 };
 
 const CreateNewTest: React.FC = () => {
-  const [multipleFieldsData, setMultipleFieldsData] = useState<MultipleFieldsTableData>(INITIAL_VALUES.multipleFields);
-  const [testData, setTestData] = useState<TestData["finalData"]>(INITIAL_VALUES.finalData);
+  const [multipleFieldsData, setMultipleFieldsData] =
+    useState<MultipleFieldsTableData>(INITIAL_VALUES.multipleFields);
+  const [testData, setTestData] = useState<TestData["finalData"]>(
+    INITIAL_VALUES.finalData
+  );
   const [isFormula, setIsFormula] = useState(false);
-  const [isInterpretationModalOpen, setIsInterpretationModalOpen] = useState(false);
+  const [isInterpretationModalOpen, setIsInterpretationModalOpen] =
+    useState(false);
   const [fieldType, setFieldType] = useState("Single field");
   const [titleName, setTitleName] = useState("");
   const [selectedRowIndex, setSelectedRowIndex] = useState<number | null>(null);
-  const [selectedChildIndex, setSelectedChildIndex] = useState<number | null>(null);
+  const [selectedChildIndex, setSelectedChildIndex] = useState<number | null>(
+    null
+  );
   const [isEditing, setIsEditing] = useState(false);
+  const [editTitle, setEditTitle] = useState(false);
 
   // Basic info form handling
   const basicInfoForm = useFormik({
@@ -141,46 +150,33 @@ const CreateNewTest: React.FC = () => {
   });
 
   // Define handleFormSubmit first, without using fieldsForm
-  const handleFormSubmit = useCallback(async (values: FieldTableData, formikHelpers: any) => {
-    if (!isEditing) {
-      if (fieldType === "Single field") {
-        setTestData(prev => [...prev, values]);
+  const handleFormSubmit = useCallback(
+    async (values: FieldTableData, formikHelpers: any) => {
+      if (!isEditing) {
+        setTestData((prev) => [...prev, values]);
         formikHelpers.resetForm();
-      } else if (fieldType === "Multiple fields" && titleName) {
-        /* const updatedMultipleFieldsData = {
-          titleName,
-          fieldType: "Multiple fields",
-          multipleFieldsData: [...multipleFieldsData.multipleFieldsData, values]
-        }; */
-        //setTestData(prev => [...prev, updatedMultipleFieldsData]);
-        handleAddSubField();
-        setMultipleFieldsData(INITIAL_VALUES.multipleFields);
+      } else {
+        // Handle updates...
+        setTestData((prev) => {
+          const newData = [...prev];
+          if (selectedRowIndex === null) return prev;
+
+          const currentField = newData[selectedRowIndex];
+
+          newData[selectedRowIndex] = values;
+
+          return newData;
+        });
+
+        setIsEditing(false);
+        setSelectedRowIndex(null);
         formikHelpers.resetForm();
         setTitleName("");
         setFieldType("Single field");
       }
-    } else {
-      // Handle updates...
-      setTestData(prev => {
-        const newData = [...prev];
-        if (selectedRowIndex === null) return prev;
-
-        const currentField = newData[selectedRowIndex];
-        if ("multipleFieldsData" in currentField) {
-          currentField.titleName = titleName;
-        } else {
-          newData[selectedRowIndex] = values;
-        }
-        return newData;
-      });
-
-      setIsEditing(false);
-      setSelectedRowIndex(null);
-      formikHelpers.resetForm();
-      setTitleName("");
-      setFieldType("Single field");
-    }
-  }, [fieldType, titleName, multipleFieldsData, isEditing, selectedRowIndex]);
+    },
+    [fieldType, titleName, multipleFieldsData, isEditing, selectedRowIndex]
+  );
 
   // Single fieldsForm definition
   const fieldsForm = useFormik({
@@ -193,39 +189,55 @@ const CreateNewTest: React.FC = () => {
     console.log(testData);
   }, [testData]);
 
-  const handleFieldTypeChange = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
-    const newFieldType = e.target.value;
-    setFieldType(newFieldType);
-    fieldsForm.setFieldValue("fieldType", newFieldType);
-    setMultipleFieldsData(prev => ({ ...prev, fieldType: newFieldType }));
-  }, []);
+  const handleFieldTypeChange = useCallback(
+    (e: React.ChangeEvent<HTMLSelectElement>) => {
+      const newFieldType = e.target.value;
+      setFieldType(newFieldType);
+      fieldsForm.setFieldValue("fieldType", newFieldType);
+      setMultipleFieldsData((prev) => ({ ...prev, fieldType: newFieldType }));
+    },
+    []
+  );
 
   const handleInterpretationSave = useCallback((interpretationData: any) => {
     console.log("Saving interpretation:", interpretationData);
-    setIsInterpretationModalOpen(false); 
+    setIsInterpretationModalOpen(false);
   }, []);
 
   const handleAddSubField = useCallback(async () => {
     if (fieldType === "Multiple fields" && titleName) {
       // First update multipleFieldsData
-      setMultipleFieldsData(prev => ({
+      setMultipleFieldsData((prev) => ({
         ...prev,
         titleName,
         multipleFieldsData: [...prev.multipleFieldsData, fieldsForm.values],
       }));
 
-      // Then immediately update testData
-      setTestData(prev => {
+      // Then immediately update testData and get the new parent index
+      setTestData((prev) => {
         const existingParentIndex = prev.findIndex(
-          item => "multipleFieldsData" in item && item.titleName === titleName
+          (item) => "multipleFieldsData" in item && item.titleName === titleName
         );
 
         if (existingParentIndex !== -1) {
           // Update existing parent
           const newData = [...prev];
-          const parent = { ...newData[existingParentIndex] } as MultipleFieldsTableData;
-          parent.multipleFieldsData = [...parent.multipleFieldsData, fieldsForm.values];
+          const parent = {
+            ...newData[existingParentIndex],
+          } as MultipleFieldsTableData;
+          parent.multipleFieldsData = [
+            ...parent.multipleFieldsData,
+            fieldsForm.values,
+          ];
           newData[existingParentIndex] = parent;
+
+          // Select the existing parent row
+          setTimeout(() => {
+            setSelectedRowIndex(existingParentIndex);
+            setSelectedChildIndex(null);
+            setIsEditing(true);
+          }, 0);
+
           return newData;
         } else {
           // Create new parent with first subfield
@@ -234,7 +246,16 @@ const CreateNewTest: React.FC = () => {
             fieldType: "Multiple fields",
             multipleFieldsData: [fieldsForm.values],
           };
-          return [...prev, newParent];
+          const newData = [...prev, newParent];
+
+          // Select the new parent row
+          setTimeout(() => {
+            setSelectedRowIndex(newData.length - 1);
+            setSelectedChildIndex(null);
+            setIsEditing(true);
+          }, 0);
+
+          return newData;
         }
       });
 
@@ -255,18 +276,39 @@ const CreateNewTest: React.FC = () => {
         // If no more children, remove the parent as well
         if (newChildren.length === 0) {
           newData.splice(parentIndex, 1);
+          // Reset form when deleting last child (parent gets deleted)
+          resetFormState();
         } else {
           parentField.multipleFieldsData = newChildren;
           newData[parentIndex] = parentField;
+          // Reset form if we're deleting the currently selected child
+          if (selectedRowIndex === parentIndex && selectedChildIndex === childIndex) {
+            resetFormState();
+          }
         }
       } else {
         // Delete the entire parent (and all its children if any)
         newData.splice(parentIndex, 1);
+        // Reset form when deleting parent or single field
+        if (selectedRowIndex === parentIndex) {
+          resetFormState();
+        }
       }
       
       return newData;
     });
-  }, []);
+  }, [selectedRowIndex, selectedChildIndex]);
+
+  // Add a helper function to reset all form-related state
+  const resetFormState = useCallback(() => {
+    setSelectedRowIndex(null);
+    setSelectedChildIndex(null);
+    setIsFormula(false);
+    setIsEditing(false);
+    fieldsForm.resetForm();
+    setTitleName("");
+    setFieldType("Single field");
+  }, [fieldsForm]);
 
   // Add handler for row selection
   const handleRowSelect = useCallback((field: any, parentIndex: number, childIndex?: number) => {
@@ -282,6 +324,16 @@ const CreateNewTest: React.FC = () => {
       return;
     }
 
+    // If we're deselecting a child row (clicking on parent when child is selected)
+    if ("multipleFieldsData" in field && selectedChildIndex !== null) {
+      setSelectedChildIndex(null);
+      setIsFormula(false);
+      fieldsForm.resetForm();
+      setFieldType("Multiple fields");
+      setTitleName(field.titleName);
+      return;
+    }
+
     // If we have a valid field, proceed with selection logic
     setSelectedRowIndex(parentIndex);
     setSelectedChildIndex(childIndex ?? null);
@@ -292,7 +344,6 @@ const CreateNewTest: React.FC = () => {
     if ("multipleFieldsData" in field) {
       setFieldType("Multiple fields");
       setTitleName(field.titleName);
-      // Don't reset form when selecting parent
     } else {
       // Handle single field or child row
       setFieldType(childIndex !== undefined ? "Multiple fields" : "Single field");
@@ -308,28 +359,30 @@ const CreateNewTest: React.FC = () => {
   // Add a new handler for updating subfields
   const handleUpdateSubField = useCallback(() => {
     if (selectedRowIndex !== null && selectedChildIndex !== null) {
-      setTestData(prev => {
+      setTestData((prev) => {
         const newData = [...prev];
-        const parentField = newData[selectedRowIndex] as MultipleFieldsTableData;
-        
+        const parentField = newData[
+          selectedRowIndex
+        ] as MultipleFieldsTableData;
+
         if ("multipleFieldsData" in parentField) {
           // Create a new array of subfields
           const updatedSubFields = [...parentField.multipleFieldsData];
           // Update the specific child with form values
           updatedSubFields[selectedChildIndex] = {
             ...fieldsForm.values,
-            fieldType: "Multiple fields" // Ensure fieldType is preserved
+            fieldType: "Multiple fields", // Ensure fieldType is preserved
           };
-          
+
           // Create new parent object with updated children
           const updatedParent: MultipleFieldsTableData = {
             ...parentField,
-            multipleFieldsData: updatedSubFields
+            multipleFieldsData: updatedSubFields,
           };
-          
+
           newData[selectedRowIndex] = updatedParent;
         }
-        
+
         return newData;
       });
 
@@ -337,6 +390,26 @@ const CreateNewTest: React.FC = () => {
       setIsEditing(true);
     }
   }, [selectedRowIndex, selectedChildIndex, fieldsForm.values]);
+
+  const handleEditTitle = useCallback(() => {
+    setEditTitle(!editTitle);
+  }, [editTitle]);
+
+  const handleUpdateTitle = useCallback((newTitle: string) => {
+    setTestData(prevData => {
+      const newData = [...prevData];
+      if (selectedRowIndex !== null) {
+        const field = newData[selectedRowIndex];
+        if ('multipleFieldsData' in field) {
+          newData[selectedRowIndex] = {
+            ...field,
+            titleName: newTitle
+          };
+        }
+      }
+      return newData;
+    });
+  }, [selectedRowIndex]);
 
   return (
     <div className="bg-white p-6 text-black">
@@ -387,7 +460,7 @@ const CreateNewTest: React.FC = () => {
                 <option>Text Editor</option>
               </select>
             </div>
-            
+
             <TestFieldsForm
               testFieldsData={fieldsForm.values as TestFieldsData}
               handleTestFieldsDataChange={fieldsForm.handleChange}
@@ -403,6 +476,10 @@ const CreateNewTest: React.FC = () => {
               setTitleName={setTitleName}
               isEditing={isEditing}
               selectedChildIndex={selectedChildIndex}
+              selectedRowIndex={selectedRowIndex}
+              editTitle={editTitle}
+              setEditTitle={setEditTitle}
+              handleUpdateTitle={handleUpdateTitle}
             />
           </div>
           <TestFieldsTable
