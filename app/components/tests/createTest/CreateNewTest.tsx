@@ -12,17 +12,17 @@ import { FieldTableData as TestFieldsData } from "./TestFieldsForm";
 
 // Move types to separate types.ts file
 interface Range {
-  numeric: {
+  numeric?: {
     minRange: string;
     maxRange: string;
   };
-  text: string;
-  numeric_unbound: {
+  text?: string;
+  numeric_unbound?: {
     comparisonOperator: string;
     value: string;
   };
-  multiple_range: string;
-  custom: {
+  multiple_range?: string;
+  custom?: {
     options: string[];
     defaultOption: string;
   };
@@ -108,11 +108,7 @@ const INITIAL_VALUES = {
     formula: "",
     testMethod: "",
     range: {
-      numeric: { minRange: "", maxRange: "" },
-      text: "",
-      numeric_unbound: { comparisonOperator: "", value: "" },
-      multiple_range: "",
-      custom: { options: [], defaultOption: "" },
+      
     },
   },
   multipleFields: {
@@ -122,6 +118,21 @@ const INITIAL_VALUES = {
   },
 
   finalData: [],
+};
+
+const INITIAL_FIELD_VALUES = {
+  name: "",
+  fieldType: "Single field",
+  field: "numeric",
+  units: "",
+  formula: "",
+  testMethod: "",
+  range: {
+    numeric: {
+      minRange: "",
+      maxRange: ""
+    }
+  }
 };
 
 const CreateNewTest: React.FC = () => {
@@ -141,6 +152,7 @@ const CreateNewTest: React.FC = () => {
   );
   const [isEditing, setIsEditing] = useState(false);
   const [editTitle, setEditTitle] = useState(false);
+  const [isResetModalOpen, setIsResetModalOpen] = useState(false);
 
   // Basic info form handling
   const basicInfoForm = useFormik({
@@ -149,7 +161,7 @@ const CreateNewTest: React.FC = () => {
     onSubmit: () => {},
   });
 
-  // Define handleFormSubmit first, without using fieldsForm
+  // Define handleFormSubmit first, without using fieldsForm for single field
   const handleFormSubmit = useCallback(
     async (values: FieldTableData, formikHelpers: any) => {
       if (!isEditing) {
@@ -161,7 +173,7 @@ const CreateNewTest: React.FC = () => {
           const newData = [...prev];
           if (selectedRowIndex === null) return prev;
 
-          const currentField = newData[selectedRowIndex];
+          //const currentField = newData[selectedRowIndex];
 
           newData[selectedRowIndex] = values;
 
@@ -184,11 +196,16 @@ const CreateNewTest: React.FC = () => {
     onSubmit: handleFormSubmit,
   });
 
-  // Memoized handlers
+  // Handle save
   const handleSave = useCallback(() => {
-    console.log(testData);
+    const finalData = {
+      ...basicInfoForm.values,
+      finalData: testData,
+    };
+    console.log(finalData);
   }, [testData]);
 
+  // Handle field type change
   const handleFieldTypeChange = useCallback(
     (e: React.ChangeEvent<HTMLSelectElement>) => {
       const newFieldType = e.target.value;
@@ -204,6 +221,7 @@ const CreateNewTest: React.FC = () => {
     setIsInterpretationModalOpen(false);
   }, []);
 
+  // Add subfield
   const handleAddSubField = useCallback(async () => {
     if (fieldType === "Multiple fields" && titleName) {
       // First update multipleFieldsData
@@ -263,6 +281,7 @@ const CreateNewTest: React.FC = () => {
     }
   }, [fieldType, titleName, fieldsForm]);
 
+  // Delete parent or child
   const handleDelete = useCallback((parentIndex: number, childIndex?: number) => {
     setTestData(prevData => {
       const newData = [...prevData];
@@ -312,13 +331,16 @@ const CreateNewTest: React.FC = () => {
 
   // Add handler for row selection
   const handleRowSelect = useCallback((field: any, parentIndex: number, childIndex?: number) => {
-    // First check if we're deselecting (field is null)
+    // Deselecting (field is null)
     if (field === null) {
       setSelectedRowIndex(null);
       setSelectedChildIndex(null);
       setIsFormula(false);
       setIsEditing(false);
-      fieldsForm.resetForm();
+      // Reset form with initial values including range
+      fieldsForm.resetForm({ 
+        values: INITIAL_FIELD_VALUES
+      });
       setTitleName("");
       setFieldType("Single field");
       return;
@@ -328,26 +350,35 @@ const CreateNewTest: React.FC = () => {
     if ("multipleFieldsData" in field && selectedChildIndex !== null) {
       setSelectedChildIndex(null);
       setIsFormula(false);
-      fieldsForm.resetForm();
+      // Reset form with initial values including range
+      fieldsForm.resetForm({ 
+        values: INITIAL_FIELD_VALUES
+      });
       setFieldType("Multiple fields");
       setTitleName(field.titleName);
       return;
     }
 
-    // If we have a valid field, proceed with selection logic
+    // Rest of the function remains the same...
     setSelectedRowIndex(parentIndex);
     setSelectedChildIndex(childIndex ?? null);
     setIsFormula(false);
     setIsEditing(true);
 
-    // Handle multiple fields parent row
     if ("multipleFieldsData" in field) {
       setFieldType("Multiple fields");
       setTitleName(field.titleName);
     } else {
-      // Handle single field or child row
       setFieldType(childIndex !== undefined ? "Multiple fields" : "Single field");
-      fieldsForm.setValues(field);
+      // Ensure custom range data is properly structured
+      const formValues = {
+        ...field,
+        range: {
+          ...field.range,
+          custom: field.range.custom || { options: [], defaultOption: "" }
+        }
+      };
+      fieldsForm.setValues(formValues);
     }
   }, [fieldsForm]);
 
@@ -391,10 +422,7 @@ const CreateNewTest: React.FC = () => {
     }
   }, [selectedRowIndex, selectedChildIndex, fieldsForm.values]);
 
-  const handleEditTitle = useCallback(() => {
-    setEditTitle(!editTitle);
-  }, [editTitle]);
-
+  // Update title for multiple fields
   const handleUpdateTitle = useCallback((newTitle: string) => {
     setTestData(prevData => {
       const newData = [...prevData];
@@ -411,13 +439,27 @@ const CreateNewTest: React.FC = () => {
     });
   }, [selectedRowIndex]);
 
+  // Reset test
+  const handleResetTest = useCallback(() => {
+    // Reset all form and state values in a single batch
+    Promise.all([
+      basicInfoForm.resetForm({ values: INITIAL_VALUES.basicInfo }),
+      setTestData([]),
+      setMultipleFieldsData(INITIAL_VALUES.multipleFields),
+      resetFormState()
+    ]);
+  }, [basicInfoForm, resetFormState]);
+
   return (
     <div className="bg-white p-6 text-black">
       <div className="mb-8">
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-lg font-medium text-gray-800">New Test</h1>
           <div className="flex items-center gap-2">
-            <button className="px-3 py-1.5 text-red-500 border border-red-500 rounded text-sm hover:bg-red-50">
+            <button 
+              className="px-3 py-1.5 text-red-500 border border-red-500 rounded text-sm hover:bg-red-50"
+              onClick={() => setIsResetModalOpen(true)}
+            >
               Reset Test
             </button>
             <button className="px-3 py-1.5 text-blue-500 border border-blue-500 rounded text-sm hover:bg-blue-50">
@@ -494,6 +536,15 @@ const CreateNewTest: React.FC = () => {
           />
         </div>
       </div>
+
+      <CustomModal
+        open={isResetModalOpen}
+        setOpen={setIsResetModalOpen}
+        isConfirmation={true}
+        title="Reset Test"
+        message="Are you sure you want to reset the test? This action cannot be undone."
+        onConfirm={handleResetTest}
+      />
 
       <CustomModal
         className="w-full max-w-4xl"

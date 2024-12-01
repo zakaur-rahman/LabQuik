@@ -168,6 +168,52 @@ const MultipleFieldsForm: React.FC<MultipleFieldsFormProps> = ({
     }
   }, [editTitle, selectedRowIndex, titleName, handleUpdateTitle, setEditTitle]);
 
+  // Updated handler for field type changes
+  const handleFieldChange = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
+    const newFieldType = e.target.value as FieldType;
+    
+    // Create empty range based on field type
+    const getEmptyRange = (type: FieldType) => {
+      switch(type) {
+        case 'numeric':
+          return { minRange: '', maxRange: '' };
+        case 'numeric_unbound':
+          return { comparisonOperator: '', value: '' };
+        case 'custom':
+          return { options: [], defaultOption: '' };
+        default:
+          return '';
+      }
+    };
+
+    // Create a synthetic event with empty range of correct type
+    const rangeEvent = {
+      target: {
+        name: 'range',
+        value: {
+          [newFieldType]: getEmptyRange(newFieldType)
+        }
+      }
+    };
+
+    // For multiple fields, update the field type in the correct structure
+    if (fieldType === "Multiple fields") {
+      const fieldEvent = {
+        target: {
+          name: 'field',
+          value: newFieldType
+        }
+      };
+      handleTestFieldsDataChange(fieldEvent);
+    } else {
+      // For single fields, update directly
+      handleTestFieldsDataChange(e);
+    }
+
+    // Update the range structure
+    handleTestFieldsDataChange(rangeEvent);
+  }, [handleTestFieldsDataChange, fieldType]);
+
   // Common styles
   const inputClass = "w-full border rounded px-3 py-1.5 text-sm";
   const labelClass = "text-sm text-gray-600 mb-1";
@@ -276,6 +322,8 @@ const MultipleFieldsForm: React.FC<MultipleFieldsFormProps> = ({
               placeholder="Select or create options"
               onOptionsChange={handleCustomOptionsChange}
               onDefaultOptionChange={handleDefaultOptionChange}
+              initialOptions={testFieldsData.range.custom?.options || []}
+              initialDefaultOption={testFieldsData.range.custom?.defaultOption || ""}
             />
           </div>
         );
@@ -362,7 +410,7 @@ const MultipleFieldsForm: React.FC<MultipleFieldsFormProps> = ({
               title="Field"
               name="field"
               value={testFieldsData.field}
-              onChange={handleTestFieldsDataChange}
+              onChange={handleFieldChange}
               className={inputClass}
               required
             >

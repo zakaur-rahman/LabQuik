@@ -6,16 +6,20 @@ interface DropdownProps {
   placeholder?: string;
   onOptionsChange?: (options: string[]) => void;
   onDefaultOptionChange?: (option: string) => void;
+  initialOptions?: string[];
+  initialDefaultOption?: string;
 }
 
 const CustomDropdown: React.FC<DropdownProps> = ({
   label = "Options",
   placeholder = "Create Options",
   onOptionsChange,
-  onDefaultOptionChange
+  onDefaultOptionChange,
+  initialOptions = [],
+  initialDefaultOption = ""
 }) => {
   const [isOpen, setIsOpen] = useState(false);
-  const [selectedOptions, setSelectedOptions] = useState<string[]>([]);
+  const [selectedOptions, setSelectedOptions] = useState<string[]>(initialOptions);
   const [options, setOptions] = useState([
     "Present",
     "Reactive",
@@ -25,9 +29,14 @@ const CustomDropdown: React.FC<DropdownProps> = ({
     "Intermediate"
   ]);
   const [newOption, setNewOption] = useState("");
-  const [defaultOption, setDefaultOption] = useState("");
+  const [defaultOption, setDefaultOption] = useState(initialDefaultOption);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    setSelectedOptions(initialOptions);
+    setDefaultOption(initialDefaultOption);
+  }, [initialOptions, initialDefaultOption]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
