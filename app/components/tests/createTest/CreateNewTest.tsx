@@ -120,6 +120,21 @@ const INITIAL_VALUES = {
   finalData: [],
 };
 
+const INITIAL_FIELD_VALUES = {
+  name: "",
+  fieldType: "Single field",
+  field: "numeric",
+  units: "",
+  formula: "",
+  testMethod: "",
+  range: {
+    numeric: {
+      minRange: "",
+      maxRange: ""
+    }
+  }
+};
+
 const CreateNewTest: React.FC = () => {
   const [multipleFieldsData, setMultipleFieldsData] =
     useState<MultipleFieldsTableData>(INITIAL_VALUES.multipleFields);
@@ -316,13 +331,16 @@ const CreateNewTest: React.FC = () => {
 
   // Add handler for row selection
   const handleRowSelect = useCallback((field: any, parentIndex: number, childIndex?: number) => {
-    // First check if we're deselecting (field is null)
+    // Deselecting (field is null)
     if (field === null) {
       setSelectedRowIndex(null);
       setSelectedChildIndex(null);
       setIsFormula(false);
       setIsEditing(false);
-      fieldsForm.resetForm();
+      // Reset form with initial values including range
+      fieldsForm.resetForm({ 
+        values: INITIAL_FIELD_VALUES
+      });
       setTitleName("");
       setFieldType("Single field");
       return;
@@ -332,26 +350,35 @@ const CreateNewTest: React.FC = () => {
     if ("multipleFieldsData" in field && selectedChildIndex !== null) {
       setSelectedChildIndex(null);
       setIsFormula(false);
-      fieldsForm.resetForm();
+      // Reset form with initial values including range
+      fieldsForm.resetForm({ 
+        values: INITIAL_FIELD_VALUES
+      });
       setFieldType("Multiple fields");
       setTitleName(field.titleName);
       return;
     }
 
-    // If we have a valid field, proceed with selection logic
+    // Rest of the function remains the same...
     setSelectedRowIndex(parentIndex);
     setSelectedChildIndex(childIndex ?? null);
     setIsFormula(false);
     setIsEditing(true);
 
-    // Handle multiple fields parent row
     if ("multipleFieldsData" in field) {
       setFieldType("Multiple fields");
       setTitleName(field.titleName);
     } else {
-      // Handle single field or child row
       setFieldType(childIndex !== undefined ? "Multiple fields" : "Single field");
-      fieldsForm.setValues(field);
+      // Ensure custom range data is properly structured
+      const formValues = {
+        ...field,
+        range: {
+          ...field.range,
+          custom: field.range.custom || { options: [], defaultOption: "" }
+        }
+      };
+      fieldsForm.setValues(formValues);
     }
   }, [fieldsForm]);
 
