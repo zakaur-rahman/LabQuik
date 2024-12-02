@@ -17,6 +17,7 @@ interface TestBasicInfoProps {
   touched: FormikTouched<any>;
   errors: FormikErrors<any>;
   setIsInterpretationModalOpen: (value: boolean) => void;
+  showInterpretation?: boolean;
 }
 
 const TestBasicInfo: React.FC<TestBasicInfoProps> = ({
@@ -26,6 +27,7 @@ const TestBasicInfo: React.FC<TestBasicInfoProps> = ({
   touched,
   errors,
   setIsInterpretationModalOpen,
+  showInterpretation = false,
 }) => {
   return (
     <div>
@@ -173,14 +175,17 @@ const TestBasicInfo: React.FC<TestBasicInfoProps> = ({
             <div className="text-red-500 text-xs mt-1">{errors.suffix as string}</div>
           )}
         </div>
-        <div className="flex gap-4 mb-8 items-end">
-          <button
-            onClick={() => setIsInterpretationModalOpen(true)}
-            className="px-4 py-1.5 bg-blue-500 text-white rounded text-sm hover:bg-blue-600"
-          >
-            View Interpretation
-          </button>
-        </div>
+        
+        {showInterpretation && (
+          <div className="flex gap-4 mb-8 items-end">
+            <button
+              onClick={() => setIsInterpretationModalOpen(true)}
+              className="px-4 py-1.5 bg-blue-500 text-white rounded text-sm hover:bg-blue-600"
+            >
+              View Interpretation
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );

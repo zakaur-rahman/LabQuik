@@ -1,268 +1,369 @@
-import React, { useState, useEffect } from "react";
-import { Trash2Icon, PlusIcon, PencilIcon } from "lucide-react";
-import { DropResult } from "@hello-pangea/dnd";
+import React, { useCallback, useEffect, useState } from "react";
+import { PlusIcon, PencilIcon } from "lucide-react";
 import { TestFieldsTable } from "../TestFieldsTable";
-import { TextEditor } from "../TextEditor";
-import CustomDropdown from "../createTest/CustomDropdown";
 import CustomModal from "@/app/utils/CustomModal";
 import AddComment from "../../common/AddComment";
 import ViewComment from "../../common/ViewComment";
 import Interpretation from "../../common/Interpretation";
-
-type EditorType = "Single field" | "Multiple fields" | "Text Editor";
-
-interface TableData {
-  name: string;
-  field: string;
-  units: string;
-  formula: string;
-  testMethod: string;
-  range: {
-    numeric: {
-      minRange: string;
-      maxRange: string;
-    };
-    text: string;
-    numeric_unbound: {
-      comparisonOperator: string;
-      value: string;
-    };
-    multiple_range: string;
-    custom: {
-      options: string[];
-      defaultOption: string;
-    };
-  };
-}
-
-interface TestData {
-  department: string;
-  testName: string;
-  cost: number;
-  testCode: string;
-  sex: string;
-  sampleType: string;
-  age: string;
-  suffix: string;
-  type: EditorType;
-}
-
-const initialTableData: TableData = {
-  name: "",
-  field: "numeric",
-  units: "",
-  formula: "",
-  testMethod: "",
-  range: {
-    numeric: {
-      minRange: "",
-      maxRange: "",
-    },
-    text: "",
-    numeric_unbound: {
-      comparisonOperator: "",
-      value: "",
-    },
-    multiple_range: "",
-    custom: {
-      options: [],
-      defaultOption: "",
-    },
-  },
-};
-
-const initialTestData: TestData = {
-  department: "MOLECULAR BIOLOGY",
-  testName: "Biology Test",
-  cost: 0,
-  testCode: "",
-  sex: "Male",
-  sampleType: "Serum",
-  age: "default",
-  suffix: "",
-  type: "Single field",
-};
+import TestBasicInfo from "../TestBasicInfo";
+import TestFieldsForm from "../TestFieldsForm";
+import { FieldTableData as TestFieldsData } from "../TestFieldsForm";
+import { useFormik } from "formik";
+import { useGetTestQuery } from "@/redux/features/test/testApi";
+import { FieldTableData, MultipleFieldsTableData, TestData } from "../types";
+import { validationSchemas, INITIAL_VALUES, INITIAL_FIELD_VALUES } from "../constants";
 
 interface EditTestProps {
   testId: number;
 }
 
 const EditTestPage: React.FC<EditTestProps> = ({ testId }) => {
-  const [tableData, setTableData] = useState<TableData>(initialTableData);
-  const [testData, setTestData] = useState<TestData>(initialTestData);
-  const [testFields, setTestFields] = useState<TableData[]>([]);
-  const [selectedRowIndex, setSelectedRowIndex] = useState<number | null>(null);
-  const [isFormula, setIsFormula] = useState<boolean>(false);
   const [isCommentModalOpen, setIsCommentModalOpen] = useState(false);
   const [isViewCommentModalOpen, setIsViewCommentModalOpen] = useState(false);
-  const [isInterpretationModalOpen, setIsInterpretationModalOpen] = useState(false);
+  const [isInterpretationModalOpen, setIsInterpretationModalOpen] =
+    useState(false);
+  const [multipleFieldsData, setMultipleFieldsData] =
+    useState<MultipleFieldsTableData>(INITIAL_VALUES.multipleFields);
+  const [testData, setTestData] = useState<TestData["finalData"]>(
+    INITIAL_VALUES.finalData
+  );
+  const [isFormula, setIsFormula] = useState(false);
+  const [fieldType, setFieldType] = useState("Single field");
+  const [titleName, setTitleName] = useState("");
+  const [selectedRowIndex, setSelectedRowIndex] = useState<number | null>(null);
+  const [selectedChildIndex, setSelectedChildIndex] = useState<number | null>(
+    null
+  );
+  const [isEditing, setIsEditing] = useState(false);
+  const [editTitle, setEditTitle] = useState(false);
+  const [isResetModalOpen, setIsResetModalOpen] = useState(false);
+
+  // Basic info form handling
+  const basicInfoForm = useFormik({
+    initialValues: INITIAL_VALUES.basicInfo,
+    validationSchema: validationSchemas.basicInfo,
+    onSubmit: () => {},
+  });
+
+  // Define handleFormSubmit first, without using fieldsForm for single field
+  const handleFormSubmit = useCallback(
+    async (values: FieldTableData, formikHelpers: any) => {
+      if (!isEditing) {
+        setTestData((prev) => [...prev, values]);
+        formikHelpers.resetForm();
+      } else {
+        // Handle updates...
+        setTestData((prev) => {
+          const newData = [...prev];
+          if (selectedRowIndex === null) return prev;
+
+          //const currentField = newData[selectedRowIndex];
+
+          newData[selectedRowIndex] = values;
+
+          return newData;
+        });
+
+        setIsEditing(false);
+        setSelectedRowIndex(null);
+        formikHelpers.resetForm();
+        setTitleName("");
+        setFieldType("Single field");
+      }
+    },
+    [fieldType, titleName, multipleFieldsData, isEditing, selectedRowIndex]
+  );
+
+
+  const { data: test, isLoading, isError } = useGetTestQuery(testId);
+  useEffect(() => {
+    if (test) {
+      console.log(test);
+    }
+  }, [test]);
+
+  // Single fieldsForm definition
+  const fieldsForm = useFormik({
+    initialValues: INITIAL_VALUES.fieldData,
+    onSubmit: handleFormSubmit,
+  });
+
+  // Handle save
+  const handleSave = useCallback(() => {
+    const finalData = {
+      ...basicInfoForm.values,
+      finalData: testData,
+    };
+    console.log(finalData);
+  }, [testData]);
+
+  // Handle field type change
+  const handleFieldTypeChange = useCallback(
+    (e: React.ChangeEvent<HTMLSelectElement>) => {
+      const newFieldType = e.target.value;
+      setFieldType(newFieldType);
+      fieldsForm.setFieldValue("fieldType", newFieldType);
+      setMultipleFieldsData((prev) => ({ ...prev, fieldType: newFieldType }));
+    },
+    []
+  );
+
+  // Add subfield
+  const handleAddSubField = useCallback(async () => {
+    if (fieldType === "Multiple fields" && titleName) {
+      // First update multipleFieldsData
+      setMultipleFieldsData((prev) => ({
+        ...prev,
+        titleName,
+        multipleFieldsData: [...prev.multipleFieldsData, fieldsForm.values],
+      }));
+
+      // Then immediately update testData and get the new parent index
+      setTestData((prev) => {
+        const existingParentIndex = prev.findIndex(
+          (item) => "multipleFieldsData" in item && item.titleName === titleName
+        );
+
+        if (existingParentIndex !== -1) {
+          // Update existing parent
+          const newData = [...prev];
+          const parent = {
+            ...newData[existingParentIndex],
+          } as MultipleFieldsTableData;
+          parent.multipleFieldsData = [
+            ...parent.multipleFieldsData,
+            fieldsForm.values,
+          ];
+          newData[existingParentIndex] = parent;
+
+          // Select the existing parent row
+          setTimeout(() => {
+            setSelectedRowIndex(existingParentIndex);
+            setSelectedChildIndex(null);
+            setIsEditing(true);
+          }, 0);
+
+          return newData;
+        } else {
+          // Create new parent with first subfield
+          const newParent: MultipleFieldsTableData = {
+            titleName,
+            fieldType: "Multiple fields",
+            multipleFieldsData: [fieldsForm.values],
+          };
+          const newData = [...prev, newParent];
+
+          // Select the new parent row
+          setTimeout(() => {
+            setSelectedRowIndex(newData.length - 1);
+            setSelectedChildIndex(null);
+            setIsEditing(true);
+          }, 0);
+
+          return newData;
+        }
+      });
+
+      fieldsForm.resetForm();
+    }
+  }, [fieldType, titleName, fieldsForm]);
+
+  // Delete parent or child
+  const handleDelete = useCallback(
+    (parentIndex: number, childIndex?: number) => {
+      setTestData((prevData) => {
+        const newData = [...prevData];
+
+        // If childIndex is provided, delete the specific child
+        if (
+          typeof childIndex === "number" &&
+          "multipleFieldsData" in newData[parentIndex]
+        ) {
+          const parentField = {
+            ...newData[parentIndex],
+          } as MultipleFieldsTableData;
+          const newChildren = [...parentField.multipleFieldsData];
+          newChildren.splice(childIndex, 1);
+
+          // If no more children, remove the parent as well
+          if (newChildren.length === 0) {
+            newData.splice(parentIndex, 1);
+            // Reset form when deleting last child (parent gets deleted)
+            resetFormState();
+          } else {
+            parentField.multipleFieldsData = newChildren;
+            newData[parentIndex] = parentField;
+            // Reset form if we're deleting the currently selected child
+            if (
+              selectedRowIndex === parentIndex &&
+              selectedChildIndex === childIndex
+            ) {
+              resetFormState();
+            }
+          }
+        } else {
+          // Delete the entire parent (and all its children if any)
+          newData.splice(parentIndex, 1);
+          // Reset form when deleting parent or single field
+          if (selectedRowIndex === parentIndex) {
+            resetFormState();
+          }
+        }
+
+        return newData;
+      });
+    },
+    [selectedRowIndex, selectedChildIndex]
+  );
+
+  // Add a helper function to reset all form-related state
+  const resetFormState = useCallback(() => {
+    setSelectedRowIndex(null);
+    setSelectedChildIndex(null);
+    setIsFormula(false);
+    setIsEditing(false);
+    fieldsForm.resetForm();
+    setTitleName("");
+    setFieldType("Single field");
+  }, [fieldsForm]);
+
+  // Add handler for row selection
+  const handleRowSelect = useCallback(
+    (field: any, parentIndex: number, childIndex?: number) => {
+      // Deselecting (field is null)
+      if (field === null) {
+        setSelectedRowIndex(null);
+        setSelectedChildIndex(null);
+        setIsFormula(false);
+        setIsEditing(false);
+        // Reset form with initial values including range
+        fieldsForm.resetForm({
+          values: INITIAL_FIELD_VALUES,
+        });
+        setTitleName("");
+        setFieldType("Single field");
+        return;
+      }
+
+      // If we're deselecting a child row (clicking on parent when child is selected)
+      if ("multipleFieldsData" in field && selectedChildIndex !== null) {
+        setSelectedChildIndex(null);
+        setIsFormula(false);
+        // Reset form with initial values including range
+        fieldsForm.resetForm({
+          values: INITIAL_FIELD_VALUES,
+        });
+        setFieldType("Multiple fields");
+        setTitleName(field.titleName);
+        return;
+      }
+
+      // Rest of the function remains the same...
+      setSelectedRowIndex(parentIndex);
+      setSelectedChildIndex(childIndex ?? null);
+      setIsFormula(false);
+      setIsEditing(true);
+
+      if ("multipleFieldsData" in field) {
+        setFieldType("Multiple fields");
+        setTitleName(field.titleName);
+      } else {
+        setFieldType(
+          childIndex !== undefined ? "Multiple fields" : "Single field"
+        );
+        // Ensure custom range data is properly structured
+        const formValues = {
+          ...field,
+          range: {
+            ...field.range,
+            custom: field.range.custom || { options: [], defaultOption: "" },
+          },
+        };
+        fieldsForm.setValues(formValues);
+      }
+    },
+    [fieldsForm]
+  );
+
+  // Add handler for formula toggle
+  const handleFormulaToggle = useCallback((value: boolean) => {
+    setIsFormula(value);
+  }, []);
+
+  // Add a new handler for updating subfields
+  const handleUpdateSubField = useCallback(() => {
+    if (selectedRowIndex !== null && selectedChildIndex !== null) {
+      setTestData((prev) => {
+        const newData = [...prev];
+        const parentField = newData[
+          selectedRowIndex
+        ] as MultipleFieldsTableData;
+
+        if ("multipleFieldsData" in parentField) {
+          // Create a new array of subfields
+          const updatedSubFields = [...parentField.multipleFieldsData];
+          // Update the specific child with form values
+          updatedSubFields[selectedChildIndex] = {
+            ...fieldsForm.values,
+            fieldType: "Multiple fields", // Ensure fieldType is preserved
+          };
+
+          // Create new parent object with updated children
+          const updatedParent: MultipleFieldsTableData = {
+            ...parentField,
+            multipleFieldsData: updatedSubFields,
+          };
+
+          newData[selectedRowIndex] = updatedParent;
+        }
+
+        return newData;
+      });
+
+      // Don't reset the form or clear selections after update
+      setIsEditing(true);
+    }
+  }, [selectedRowIndex, selectedChildIndex, fieldsForm.values]);
+
+  // Update title for multiple fields
+  const handleUpdateTitle = useCallback(
+    (newTitle: string) => {
+      setTestData((prevData) => {
+        const newData = [...prevData];
+        if (selectedRowIndex !== null) {
+          const field = newData[selectedRowIndex];
+          if ("multipleFieldsData" in field) {
+            newData[selectedRowIndex] = {
+              ...field,
+              titleName: newTitle,
+            };
+          }
+        }
+        return newData;
+      });
+    },
+    [selectedRowIndex]
+  );
+
+  // Reset test
+  const handleResetTest = useCallback(() => {
+    // Reset all form and state values in a single batch
+    Promise.all([
+      basicInfoForm.resetForm({ values: INITIAL_VALUES.basicInfo }),
+      setTestData([]),
+      setMultipleFieldsData(INITIAL_VALUES.multipleFields),
+      resetFormState(),
+    ]);
+  }, [basicInfoForm, resetFormState]);
 
   const [comments, setComments] = useState([
     { id: 1, text: "hello" },
     // Add more comments as needed
   ]);
 
-  const handleTableDataChange = (newData: Partial<TableData>) => {
-    setTableData((prevData) => {
-      let updatedData = { ...prevData, ...newData };
-
-      // Reset range and units when field type changes
-      if (newData.field && newData.field !== prevData.field) {
-        updatedData = {
-          ...updatedData,
-          units: "",
-          range: {
-            numeric: { minRange: "", maxRange: "" },
-            text: "",
-            numeric_unbound: { comparisonOperator: "", value: "" },
-            multiple_range: "",
-            custom: { options: [], defaultOption: "" },
-          },
-        };
-      }
-
-      return updatedData;
-    });
-
-    if (selectedRowIndex !== null) {
-      setTestFields((prevFields) => {
-        const updatedFields = [...prevFields];
-        updatedFields[selectedRowIndex] = {
-          ...updatedFields[selectedRowIndex],
-          ...newData,
-        };
-
-        // Reset range and units in testFields when field type changes
-        if (
-          newData.field &&
-          newData.field !== prevFields[selectedRowIndex].field
-        ) {
-          updatedFields[selectedRowIndex] = {
-            ...updatedFields[selectedRowIndex],
-            units: "",
-            range: {
-              numeric: { minRange: "", maxRange: "" },
-              text: "",
-              numeric_unbound: { comparisonOperator: "", value: "" },
-              multiple_range: "",
-              custom: { options: [], defaultOption: "" },
-            },
-          };
-        }
-
-        return updatedFields;
-      });
-    }
-  };
-
-  const handleTestDataChange = (newData: Partial<TestData>) => {
-    setTestData((prevData) => ({ ...prevData, ...newData }));
-  };
-
-  const onDragEnd = (result: DropResult) => {
-    if (!result.destination) return;
-
-    const items = Array.from(testFields);
-    const [reorderedItem] = items.splice(result.source.index, 1);
-    items.splice(result.destination.index, 0, reorderedItem);
-
-    setTestFields(items);
-  };
-
-  const handleDeleteField = (index: number) => {
-    setTestFields((prev) => prev.filter((_, i) => i !== index));
-    if (selectedRowIndex === index) {
-      setSelectedRowIndex(null);
-      setTableData(initialTableData);
-    }
-  };
-
-  const handleInputChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
-  ) => {
-    const { name, value } = e.target;
-    
-    // Handle test data changes (including testName)
-    if (name === "testName" || name === "department" || name === "cost" || name === "testCode" || 
-        name === "sex" || name === "sampleType" || name === "age" || name === "suffix" || name === "type") {
-      handleTestDataChange({ [name]: value });
-    }
-  };
-
-  // Separate handler for table data name
-  const handleTableNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { value } = e.target;
-    handleTableDataChange({ name: value });
-  };
-
-  const handleRowSelect = (field: TableData | null, index: number) => {
-    if (field) {
-      setTableData(field);
-      setTestData((prevData) => ({ ...prevData, testName: field.name }));
-      setSelectedRowIndex(index);
-    } else {
-      setTableData(initialTableData);
-      setTestData((prevData) => ({ ...prevData, testName: "" }));
-      setSelectedRowIndex(null);
-      setIsFormula(false);
-    }
-  };
-
-  const resetForm = () => {
-    setTestData(initialTestData);
-    setTableData(initialTableData);
-    setSelectedRowIndex(null);
-    setIsFormula(false);
-  };
-
   const handleSubmit = () => {
-    console.log("Saving test data:", { testData, testFields, tableData });
+    //console.log("Saving test data:", { testData, testFields, tableData });
     // Add your save logic here
-  };
-
-  const handleReset = () => {
-    if (window.confirm("Are you sure you want to reset all fields?")) {
-      resetForm();
-      setTestFields([]);
-    }
-  };
-
-  useEffect(() => {
-    if (selectedRowIndex === null && tableData.name) {
-      const newIndex = testFields.length;
-      setTestFields((prev) => [...prev, tableData]);
-      setSelectedRowIndex(newIndex);
-    }
-  }, [tableData, selectedRowIndex, testFields.length]);
-
-  const renderEditor = () => {
-    switch (testData.type) {
-      /* case "Single field":
-        return (
-           <TestFieldsTable
-            testFields={testFields}
-            onDragEnd={() => onDragEnd}
-            onDelete={handleDeleteField}
-            onRowSelect={handleRowSelect}
-            selectedRowIndex={selectedRowIndex}
-            isFormula={isFormula}
-            setFormula={setFormula}
-          /> 
-        ); */
-      
-      case "Text Editor":
-        return <TextEditor />;
-      default:
-        return null;
-    }
-  };
-
-  const setFormula = (value: boolean) => {
-    setIsFormula(value);
-  };
-
-  const handleAddFormula = () => {
-    console.log("Adding formula for row:", selectedRowIndex);
   };
 
   const handleCommentSave = (comment: string) => {
@@ -277,7 +378,7 @@ const EditTestPage: React.FC<EditTestProps> = ({ testId }) => {
 
   const handleRemoveComment = (id: number) => {
     console.log("Removing comment:", id);
-    setComments(comments.filter(comment => comment.id !== id));
+    setComments(comments.filter((comment) => comment.id !== id));
   };
 
   const handleInterpretationSave = (interpretationData: any) => {
@@ -293,21 +394,21 @@ const EditTestPage: React.FC<EditTestProps> = ({ testId }) => {
           <h1 className="text-lg font-medium text-gray-800">Edit Test</h1>
           <div className="flex items-center gap-2">
             <button
-              onClick={handleReset}
               className="px-3 py-1.5 text-red-500 border border-red-500 rounded text-sm hover:bg-red-50"
+              onClick={() => setIsResetModalOpen(true)}
             >
               Reset Test
             </button>
             <button className="px-3 py-1.5 text-blue-500 border border-blue-500 rounded text-sm hover:bg-blue-50">
               Report preview
             </button>
-            <button 
+            <button
               onClick={() => setIsViewCommentModalOpen(true)}
               className="px-3 py-1.5 text-blue-500 border border-blue-500 rounded text-sm hover:bg-blue-50"
             >
               View Comments
             </button>
-            <button 
+            <button
               onClick={() => setIsCommentModalOpen(true)}
               className="px-3 py-1.5 bg-blue-500 text-white rounded text-sm hover:bg-blue-600"
             >
@@ -319,396 +420,70 @@ const EditTestPage: React.FC<EditTestProps> = ({ testId }) => {
               className="px-3 py-1.5 bg-blue-500 text-white rounded text-sm hover:bg-blue-600 flex items-center"
             >
               <PencilIcon className="w-4 h-4 mr-1" />
-              Save
+              Update Test
             </button>
           </div>
         </div>
 
-        {/* Main Form Section */}
-        <div className="grid grid-cols-12 gap-4 mb-6">
-          <div className="col-span-3">
-            <label className="text-sm text-gray-600 mb-1">Department:</label>
-            <select
-              name="department"
-              value={testData.department}
-              onChange={handleInputChange}
-              aria-label="Department"
-              className="w-full border rounded px-3 py-1.5 text-sm"
-            >
-              <option>MOLECULAR BIOLOGY</option>
-              <option>BIOCHEMISTRY</option>
-              <option>HEMATOLOGY</option>
-            </select>
-          </div>
-          <div className="col-span-5">
-            <label className="text-sm text-gray-600 mb-1">Test Name:</label>
-            <input
-              type="text"
-              name="testName"
-              value={testData.testName}
-              onChange={handleInputChange}
-              aria-label="Test Name"
-              className="w-full border rounded px-3 py-1.5 text-sm"
-            />
-          </div>
-          <div className="col-span-2">
-            <label className="text-sm text-gray-600 mb-1">Cost:</label>
-            <input
-              type="number"
-              name="cost"
-              value={testData.cost}
-              onChange={handleInputChange}
-              aria-label="Cost"
-              className="w-full border rounded px-3 py-1.5 text-sm"
-            />
-          </div>
-          <div className="col-span-2">
-            <label className="text-sm text-gray-600 mb-1">Test Code:</label>
-            <input
-              type="text"
-              name="testCode"
-              value={testData.testCode}
-              onChange={handleInputChange}
-              aria-label="Test Code"
-              className="w-full border rounded px-3 py-1.5 text-sm"
-            />
-          </div>
-        </div>
+        <TestBasicInfo
+          values={basicInfoForm.values}
+          handleChange={basicInfoForm.handleChange}
+          handleBlur={basicInfoForm.handleBlur}
+          touched={basicInfoForm.touched}
+          errors={basicInfoForm.errors}
+          setIsInterpretationModalOpen={setIsInterpretationModalOpen}
+          showInterpretation={true}
+        />
 
-        {/* Secondary Form Section */}
-        <div className="flex gap-4 mb-8 items-end">
-          <div className="w-48">
-            <label className="text-sm text-gray-600 mb-1">By Sex:</label>
-            <select
-              name="sex"
-              value={testData.sex}
-              onChange={handleInputChange}
-              aria-label="Gender"
-              className="w-full border rounded px-3 py-1.5 text-sm"
-            >
-              <option>Male</option>
-              <option>Female</option>
-              <option>Both</option>
-            </select>
-          </div>
-          <div className="w-48">
-            <label className="text-sm text-gray-600 mb-1">Sample type:</label>
-            <select
-              name="sampleType"
-              value={testData.sampleType}
-              onChange={handleInputChange}
-              aria-label="Sample Type"
-              className="w-full border rounded px-3 py-1.5 text-sm"
-            >
-              <option>Serum</option>
-              <option>Plasma</option>
-              <option>Whole Blood</option>
-              <option>Urine</option>
-            </select>
-          </div>
-          <div className="w-48">
-            <label className="text-sm text-gray-600 mb-1">Age:</label>
-            <select
-              name="age"
-              value={testData.age}
-              onChange={handleInputChange}
-              aria-label="Age"
-              className="w-full border rounded px-3 py-1.5 text-sm"
-            >
-              <option value="default">Default</option>
-              <option value="pediatric">Pediatric</option>
-              <option value="adult">Adult</option>
-              <option value="geriatric">Geriatric</option>
-            </select>
-          </div>
-          <div className="flex gap-2">
-            <button aria-label="Add" className="px-2 py-1.5 border rounded">
-              <PlusIcon className="w-4 h-4" />
-            </button>
-            <button aria-label="Edit" className="px-2 py-1.5 border rounded">
-              <PencilIcon className="w-4 h-4" />
-            </button>
-          </div>
-          <div className="flex-1">
-            <label className="text-sm text-gray-600 mb-1">Suffix:</label>
-            <input
-              type="text"
-              name="suffix"
-              value={testData.suffix}
-              onChange={handleInputChange}
-              placeholder="Enter Barcode Suffix"
-              className="w-full border rounded px-3 py-1.5 text-sm"
-            />
-          </div>
-          <button 
-            onClick={() => setIsInterpretationModalOpen(true)}
-            className="px-4 py-1.5 bg-blue-500 text-white rounded text-sm hover:bg-blue-600"
-          >
-            View Interpretation
-          </button>
-        </div>
-
-        {/* Content Section with Editor and Form */}
         <div className="flex gap-8">
-          {/* Right Side Form */}
           <div className="w-96 space-y-4">
             <div>
               <label className="text-sm text-gray-600 mb-1">Type:</label>
               <select
-                name="type"
-                value={testData.type}
-                onChange={handleInputChange}
-                aria-label="Type"
+                title="fieldType"
+                name="fieldType"
+                value={fieldType}
+                onChange={handleFieldTypeChange}
                 className="w-full border rounded px-3 py-1.5 text-sm"
+                disabled={titleName !== ""}
               >
                 <option>Single field</option>
                 <option>Multiple fields</option>
                 <option>Text Editor</option>
               </select>
             </div>
-            {testData.type === "Single field" && (
-              <>
-                <div>
-                  <label className="text-sm text-gray-600 mb-1">Name:</label>
-                  <input
-                    type="text"
-                    name="name"
-                    value={tableData.name}
-                    onChange={handleTableNameChange}
-                    aria-label="Name"
-                    className="w-full border rounded px-3 py-1.5 text-sm"
-                  />
-                </div>
-                <div>
-                  <label className="text-sm text-gray-600 mb-1">
-                    Test Method:
-                  </label>
-                  <select
-                    name="testMethod"
-                    value={tableData.testMethod}
-                    onChange={(e) =>
-                      handleTableDataChange({ testMethod: e.target.value })
-                    }
-                    aria-label="Test Method"
-                    className="w-full border rounded px-3 py-1.5 text-sm"
-                  >
-                    <option value="">Select Test Method</option>
-                    <option value="pcr">PCR</option>
-                    <option value="elisa">ELISA</option>
-                    <option value="immunoassay">Immunoassay</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="text-sm text-gray-600 mb-1">Field:</label>
-                  <select
-                    name="field"
-                    value={tableData.field}
-                    onChange={(e) =>
-                      handleTableDataChange({ field: e.target.value })
-                    }
-                    aria-label="Field"
-                    className="w-full border rounded px-3 py-1.5 text-sm"
-                  >
-                    <option value="numeric">Numeric</option>
-                    <option value="text">Text</option>
-                    <option value="numeric_unbound">Numeric Unbound</option>
-                    <option value="multiple_range">Multiple Range</option>
-                    <option value="custom">Custom</option>
-                  </select>
-                </div>
-                {tableData.field === "custom" && (
-                  <div>
-                    <label className="text-sm text-gray-600 mb-1">
-                      Custom:
-                    </label>
-                    <CustomDropdown
-                      placeholder="Select or create options"
-                      onOptionsChange={(options) =>
-                        handleTableDataChange({
-                          range: {
-                            ...tableData.range,
-                            custom: { ...tableData.range.custom, options },
-                          },
-                        })
-                      }
-                      onDefaultOptionChange={(defaultOption) =>
-                        handleTableDataChange({
-                          range: {
-                            ...tableData.range,
-                            custom: {
-                              ...tableData.range.custom,
-                              defaultOption,
-                            },
-                          },
-                        })
-                      }
-                    />
-                  </div>
-                )}
-                <div>
-                  <label className="text-sm text-gray-600 mb-1">Units:</label>
-                  <input
-                    type="text"
-                    name="units"
-                    value={tableData.units}
-                    onChange={(e) =>
-                      handleTableDataChange({ units: e.target.value })
-                    }
-                    aria-label="Units"
-                    className="w-full border rounded px-3 py-1.5 text-sm"
-                  />
-                </div>
-                {tableData.field === "numeric" && (
-                  <div className="flex gap-2 items-center justify-between">
-                    <label className="text-sm text-gray-600 mb-1">Range:</label>
-                    <input
-                      type="text"
-                      name="minRange"
-                      value={tableData.range.numeric.minRange}
-                      onChange={(e) =>
-                        handleTableDataChange({
-                          range: {
-                            ...tableData.range,
-                            numeric: {
-                              ...tableData.range.numeric,
-                              minRange: e.target.value,
-                            },
-                          },
-                        })
-                      }
-                      aria-label="Minimum"
-                      className="w-full border rounded px-3 py-1.5 text-sm"
-                      placeholder="Minimum"
-                    />
-                    <span className="text-gray-400">to</span>
-                    <input
-                      type="text"
-                      name="maxRange"
-                      value={tableData.range.numeric.maxRange}
-                      onChange={(e) =>
-                        handleTableDataChange({
-                          range: {
-                            ...tableData.range,
-                            numeric: {
-                              ...tableData.range.numeric,
-                              maxRange: e.target.value,
-                            },
-                          },
-                        })
-                      }
-                      aria-label="Maximum"
-                      className="w-full border rounded px-3 py-1.5 text-sm"
-                      placeholder="Maximum"
-                    />
-                  </div>
-                )}
-                {tableData.field === "text" && (
-                  <div>
-                    <label className="text-sm text-gray-600 mb-1">
-                      Formula:
-                    </label>
-                    <textarea
-                      name="textRange"
-                      value={tableData.range.text}
-                      onChange={(e) =>
-                        handleTableDataChange({
-                          range: { ...tableData.range, text: e.target.value },
-                        })
-                      }
-                      aria-label="Formula"
-                      className="w-full border rounded px-3 py-1.5 text-sm"
-                    />
-                  </div>
-                )}
-                {tableData.field === "numeric_unbound" && (
-                  <div className="flex flex-col gap-2">
-                    <label className="text-sm text-gray-600 mb-1">Range:</label>
-                    <div className="flex gap-2 items-center justify-between">
-                      <select
-                        name="comparisonOperator"
-                        value={
-                          tableData.range.numeric_unbound.comparisonOperator
-                        }
-                        onChange={(e) =>
-                          handleTableDataChange({
-                            range: {
-                              ...tableData.range,
-                              numeric_unbound: {
-                                ...tableData.range.numeric_unbound,
-                                comparisonOperator: e.target.value,
-                              },
-                            },
-                          })
-                        }
-                        aria-label="Comparison Operator"
-                        className="w-full border rounded px-3 py-1.5 text-sm"
-                      >
-                        <option value="">Select Comparison Operator</option>
-                        <option value="<=">less than equal to</option>
-                        <option value="<">less than</option>
-                        <option value=">">greater than</option>
-                        <option value="=">equal to</option>
-                        <option value=">=">greater than equal to</option>
-                      </select>
-                      <input
-                        type="text"
-                        name="value"
-                        value={tableData.range.numeric_unbound.value}
-                        onChange={(e) =>
-                          handleTableDataChange({
-                            range: {
-                              ...tableData.range,
-                              numeric_unbound: {
-                                ...tableData.range.numeric_unbound,
-                                value: e.target.value,
-                              },
-                            },
-                          })
-                        }
-                        aria-label="Value"
-                        className="w-full border rounded px-3 py-1.5 text-sm"
-                        placeholder="Value"
-                      />
-                    </div>
-                  </div>
-                )}
-                {tableData.field === "multiple_range" && (
-                  <div>
-                    <label className="text-sm text-gray-600 mb-1">
-                      Multiple Range:
-                    </label>
-                    <textarea
-                      name="multipleRange"
-                      value={tableData.range.multiple_range}
-                      onChange={(e) =>
-                        handleTableDataChange({
-                          range: {
-                            ...tableData.range,
-                            multiple_range: e.target.value,
-                          },
-                        })
-                      }
-                      aria-label="Multiple Range"
-                      className="w-full border rounded px-3 py-1.5 text-sm"
-                    />
-                  </div>
-                )}
-                <div className="flex gap-2">
-                  <button className="px-3 py-1.5 text-blue-500 border border-blue-500 rounded text-sm hover:bg-blue-50">
-                    Add Field
-                  </button>
-                  <button 
-                    onClick={() => handleAddFormula()}
-                    className={`px-3 py-1.5 text-blue-500 border border-blue-500 rounded text-sm hover:bg-blue-50 ${isFormula ? "":"hidden"}`}>
-                    Add Formula
-                  </button>
-                </div>
-              </>
-            )}
-          </div>
 
-          {/* Dynamic Editor Section */}
-          {renderEditor()}
+            <TestFieldsForm
+              testFieldsData={fieldsForm.values as TestFieldsData}
+              handleTestFieldsDataChange={fieldsForm.handleChange}
+              handleAddField={fieldsForm.handleSubmit}
+              handleAddSubField={handleAddSubField}
+              handleUpdateSubField={handleUpdateSubField}
+              isFormula={isFormula}
+              handleAddFormula={() => {}}
+              errors={fieldsForm.errors}
+              touched={fieldsForm.touched}
+              fieldType={fieldType}
+              titleName={titleName}
+              setTitleName={setTitleName}
+              isEditing={isEditing}
+              selectedChildIndex={selectedChildIndex}
+              selectedRowIndex={selectedRowIndex}
+              editTitle={editTitle}
+              setEditTitle={setEditTitle}
+              handleUpdateTitle={handleUpdateTitle}
+            />
+          </div>
+          <TestFieldsTable
+            testFields={testData as TestData["finalData"]}
+            onDelete={handleDelete}
+            onDragEnd={() => {}}
+            onRowSelect={handleRowSelect}
+            selectedRowIndex={selectedRowIndex}
+            selectedChildIndex={selectedChildIndex}
+            setFormula={handleFormulaToggle}
+            isFormula={isFormula}
+          />
         </div>
       </div>
 
@@ -750,6 +525,14 @@ const EditTestPage: React.FC<EditTestProps> = ({ testId }) => {
             {...props}
           />
         )}
+      />
+      <CustomModal
+        open={isResetModalOpen}
+        setOpen={setIsResetModalOpen}
+        isConfirmation={true}
+        title="Reset Test"
+        message="Are you sure you want to reset the test? This action cannot be undone."
+        onConfirm={handleResetTest}
       />
     </div>
   );
