@@ -222,6 +222,8 @@ const MultipleFieldsForm: React.FC<MultipleFieldsFormProps> = ({
 
   // Render field-specific range inputs
   const renderRangeField = () => {
+    const range = testFieldsData?.range || {};
+    
     switch (testFieldsData?.field) {
       case "numeric":
         return (
@@ -230,7 +232,7 @@ const MultipleFieldsForm: React.FC<MultipleFieldsFormProps> = ({
             <input
               type="number"
               name="range.numeric.minRange"
-              value={testFieldsData?.range?.numeric?.minRange}
+              value={range.numeric?.minRange || ""}
               onChange={handleTestFieldsDataChange}
               className={inputClass}
               placeholder="Minimum"
@@ -239,7 +241,7 @@ const MultipleFieldsForm: React.FC<MultipleFieldsFormProps> = ({
             <input
               type="number"
               name="range.numeric.maxRange"
-              value={testFieldsData?.range?.numeric?.maxRange}
+              value={range.numeric?.maxRange || ""}
               onChange={handleTestFieldsDataChange}
               className={inputClass}
               placeholder="Maximum"
@@ -322,8 +324,8 @@ const MultipleFieldsForm: React.FC<MultipleFieldsFormProps> = ({
               placeholder="Select or create options"
               onOptionsChange={handleCustomOptionsChange}
               onDefaultOptionChange={handleDefaultOptionChange}
-              initialOptions={testFieldsData.range.custom?.options || []}
-              initialDefaultOption={testFieldsData.range.custom?.defaultOption || ""}
+              initialOptions={range.custom?.options || []}
+              initialDefaultOption={range.custom?.defaultOption || ""}
             />
           </div>
         );

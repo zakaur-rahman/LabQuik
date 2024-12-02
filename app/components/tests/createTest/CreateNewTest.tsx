@@ -3,137 +3,13 @@ import { PlusIcon, PencilIcon } from "lucide-react";
 import { useFormik } from "formik";
 import * as yup from "yup";
 import { TestFieldsTable } from "../TestFieldsTable";
-import { TextEditor } from "../TextEditor";
 import CustomModal from "@/app/utils/CustomModal";
-import Interpretation from "../../common/Interpretation";
-import TestBasicInfo from "./TestBasicInfo";
-import TestFieldsForm from "./TestFieldsForm";
-import { FieldTableData as TestFieldsData } from "./TestFieldsForm";
+import TestBasicInfo from "../TestBasicInfo";
+import TestFieldsForm from "../TestFieldsForm";
+import { FieldTableData, MultipleFieldsTableData, TestData } from "../types";
+import { FieldTableData as TestFieldsData } from "../TestFieldsForm";
+import { validationSchemas, INITIAL_VALUES, INITIAL_FIELD_VALUES } from "../constants";
 
-// Move types to separate types.ts file
-interface Range {
-  numeric?: {
-    minRange: string;
-    maxRange: string;
-  };
-  text?: string;
-  numeric_unbound?: {
-    comparisonOperator: string;
-    value: string;
-  };
-  multiple_range?: string;
-  custom?: {
-    options: string[];
-    defaultOption: string;
-  };
-}
-
-interface FieldTableData {
-  name: string;
-  fieldType: string;
-  field: string;
-  units: string;
-  formula: string;
-  testMethod: string;
-  range: Range;
-}
-
-interface MultipleFieldsTableData {
-  titleName: string;
-  fieldType: string;
-  multipleFieldsData: FieldTableData[];
-}
-
-export interface TestData {
-  finalData: (FieldTableData | MultipleFieldsTableData)[];
-}
-
-// Move validation schemas to separate validation.ts file
-const validationSchemas = {
-  singleField: yup.object({
-    name: yup.string().required("Name is required"),
-    fieldType: yup.string().required("Field type is required"),
-    field: yup.string().required("Field is required"),
-    units: yup.string().required("Units is required"),
-    formula: yup.string().required("Formula is required"),
-    testMethod: yup.string().required("Test method is required"),
-    range: yup.object({
-      numeric: yup.object({
-        minRange: yup.string().required("Min range is required"),
-        maxRange: yup.string().required("Max range is required"),
-      }),
-      text: yup.string().required("Text is required"),
-      numeric_unbound: yup.object({
-        comparisonOperator: yup
-          .string()
-          .required("Comparison operator is required"),
-        value: yup.string().required("Value is required"),
-      }),
-      multiple_range: yup.string().required("Multiple range is required"),
-      custom: yup.object({
-        options: yup.array().of(yup.string()).required("Options are required"),
-        defaultOption: yup.string().required("Default option is required"),
-      }),
-    }),
-  }),
-  basicInfo: yup.object({
-    department: yup.string().required("Department is required"),
-    testName: yup.string().required("Test name is required"),
-    cost: yup.number().required("Cost is required"),
-    testCode: yup.string().required("Test code is required"),
-    sex: yup.string().required("Sex is required"),
-    sampleType: yup.string().required("Sample type is required"),
-    age: yup.string().required("Age is required"),
-    suffix: yup.string().required("Suffix is required"),
-  }),
-};
-
-// Move initial values to separate constants.ts file
-const INITIAL_VALUES = {
-  basicInfo: {
-    department: "",
-    testName: "",
-    cost: 0,
-    testCode: "",
-    sex: "Male",
-    sampleType: "Serum",
-    age: "default",
-    suffix: "",
-  },
-  fieldData: {
-    name: "",
-    fieldType: "Single field",
-    field: "numeric",
-    units: "",
-    formula: "",
-    testMethod: "",
-    range: {
-      
-    },
-  },
-  multipleFields: {
-    titleName: "",
-    fieldType: "Multiple fields",
-    multipleFieldsData: [],
-  },
-
-  finalData: [],
-};
-
-const INITIAL_FIELD_VALUES = {
-  name: "",
-  fieldType: "Single field",
-  field: "numeric",
-  units: "",
-  formula: "",
-  testMethod: "",
-  range: {
-    numeric: {
-      minRange: "",
-      maxRange: ""
-    }
-  }
-};
 
 const CreateNewTest: React.FC = () => {
   const [multipleFieldsData, setMultipleFieldsData] =
@@ -215,11 +91,6 @@ const CreateNewTest: React.FC = () => {
     },
     []
   );
-
-  const handleInterpretationSave = useCallback((interpretationData: any) => {
-    console.log("Saving interpretation:", interpretationData);
-    setIsInterpretationModalOpen(false);
-  }, []);
 
   // Add subfield
   const handleAddSubField = useCallback(async () => {
@@ -544,19 +415,6 @@ const CreateNewTest: React.FC = () => {
         title="Reset Test"
         message="Are you sure you want to reset the test? This action cannot be undone."
         onConfirm={handleResetTest}
-      />
-
-      <CustomModal
-        className="w-full max-w-4xl"
-        open={isInterpretationModalOpen}
-        setOpen={setIsInterpretationModalOpen}
-        component={(props) => (
-          <Interpretation
-            onClose={() => setIsInterpretationModalOpen(false)}
-            onSave={handleInterpretationSave}
-            {...props}
-          />
-        )}
       />
     </div>
   );

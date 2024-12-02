@@ -2,37 +2,8 @@ import React, { useState } from "react";
 import { Trash2, GripVertical } from "lucide-react";
 
 // Use the TableData interface
-import { TestData } from "./createTest/CreateNewTest";
+import { TestData, SingleFieldTableData, MultipleFieldsTableData } from "./types";
 
-interface SingleFieldTableData {
-  fieldType: string;
-  name: string;
-  field: string;
-  units: string;
-  formula: string;
-  testMethod: string;
-  range: {
-    numeric: {
-      minRange: string;
-      maxRange: string;
-    };
-    text: string;
-    numeric_unbound: {
-      comparisonOperator: string;
-      value: string;
-    };
-    multiple_range: string;
-    custom: {
-      options: string[];
-      defaultOption: string;
-    };
-  };
-}
-interface MultipleFieldsTableData {
-  titleName: string;
-  fieldType: string;
-  multipleFieldsData: SingleFieldTableData[];
-}
 
 interface TestFieldsTableProps {
   testFields: TestData["finalData"];
@@ -101,7 +72,7 @@ const TableRowsForSingleField: React.FC<{
                       if (selectedRowIndex === index) {
                         onRowSelect(null, -1);
                       } else {
-                        onRowSelect(field, index);
+                        onRowSelect(field as any, index);
                       }
                     }}
                   />
@@ -145,9 +116,9 @@ const TableRowsForSingleField: React.FC<{
                       onChange={() => {
                         if (selectedRowIndex === index) {
                           if (selectedChildIndex === subIndex) {
-                            onRowSelect(field, index);
+                            onRowSelect(field as any, index);
                           } else {
-                            onRowSelect(subField, index, subIndex);
+                            onRowSelect(subField as any, index, subIndex);
                           }
                         }
                       }}
@@ -212,7 +183,7 @@ const TableRowsForSingleField: React.FC<{
                   if (selectedRowIndex === index && selectedChildIndex === null) {
                     onRowSelect(null, -1);
                   } else {
-                    onRowSelect(field, index);
+                    onRowSelect(field as any, index);
                   }
                 }}
               />
