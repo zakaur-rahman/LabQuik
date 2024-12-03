@@ -1,13 +1,13 @@
+import { Edit2 } from 'lucide-react';
 import React, { useState } from 'react';
-import { Check, ChevronLeft, ChevronRight } from 'lucide-react';
-import RichTextEditor from '../../common/TextEditor';
+import { TestData } from '../../tests/types';
+import { demoTestData } from '../constants';
+import MedicalTestForm from './MedicalTestForm';
+import * as yup from 'yup';
 
 // Define the Patient type (should match the one in AllReports.tsx)
 type Patient = {
   id: string;
-  details: { name: string; age: string; gender: string };
-  doctor: string;
-  status: string;
 };
 
 // Define the props for the ViewReport component
@@ -16,6 +16,9 @@ interface ViewReportProps {
   onClose: () => void;
 }
 
+const validationSchema = yup.object({
+  testName: yup.string().required('Test name is required'),
+});
 // Button Component
 const Button = ({ variant = 'default', size = 'default', className = '', children, ...props }: {
   variant?: 'default' | 'secondary' | 'outline' | 'ghost';
@@ -62,28 +65,12 @@ const Tab = ({ active, children, onClick }: { active: boolean; children: React.R
   </button>
 );
 
-// Checkbox Component
-const Checkbox = ({ label, checked, onChange }: { label: string; checked: boolean; onChange: (event: React.ChangeEvent<HTMLInputElement>) => void }) => (
-  <label className="flex items-center gap-2 cursor-pointer">
-    <div className="relative">
-      <input
-        type="checkbox"
-        className="w-4 h-4 border border-gray-300 rounded"
-        checked={checked}
-        onChange={onChange}
-      />
-      {checked && (
-        <Check className="absolute top-0 left-0 w-4 h-4 text-blue-500 pointer-events-none" />
-      )}
-    </div>
-    {label}
-  </label>
-);
 
 // Main UltrasoundReportEditor Component
-const UltrasoundReportEditor: React.FC<ViewReportProps> = ({ patient, onClose }) => {
+const ReportEditor: React.FC<ViewReportProps> = ({ patient, onClose }) => {
   const [activeTab, setActiveTab] = useState('tests');
   const [showInterpretation, setShowInterpretation] = useState(false);
+
 
   return (
     <div className="w-full text-black mx-auto p-4">
@@ -105,32 +92,7 @@ const UltrasoundReportEditor: React.FC<ViewReportProps> = ({ patient, onClose })
       {/* Main Content */}
       <div className="border rounded-lg bg-white shadow-sm p-4">
         {/* Tabs */}
-        <div className="flex border-b mb-4">
-          {['Tests', 'Observed Value', 'Units', 'Normal Range'].map(tab => (
-            <Tab
-              key={tab}
-              active={activeTab === tab.toLowerCase()}
-              onClick={() => setActiveTab(tab.toLowerCase())}
-            >
-              {tab}
-            </Tab>
-          ))}
-        </div>
-
-        <div className="mb-4 font-medium">
-          ULTRASONOGRAPHY OF ARTERIAL SYSTEM OF BOTH LOWER LIMBS PERFORMED
-        </div>
-
-        <RichTextEditor />
-
-        <div className="flex justify-between items-center mt-4">
-          <Checkbox
-            label="Show Interpretation"
-            checked={showInterpretation}
-            onChange={(e) => setShowInterpretation(e.target.checked)}
-          />
-          <Button variant="outline" size="sm">+ Comments</Button>
-        </div>
+        <MedicalTestForm testData={demoTestData} />
       </div>
 
       {/* Footer */}
@@ -145,4 +107,4 @@ const UltrasoundReportEditor: React.FC<ViewReportProps> = ({ patient, onClose })
   );
 };
 
-export default UltrasoundReportEditor;
+export default ReportEditor;

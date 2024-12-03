@@ -230,7 +230,7 @@ const renderRange = (range: any, fieldType: string) => {
   switch (fieldType) {
     case "numeric":
       return range?.numeric
-        ? `${range.numeric.minRange} - ${range.numeric.maxRange}`
+        ? `${range.numeric.min} - ${range.numeric.max}`
         : "";
     case "text":
       return range?.text || "";

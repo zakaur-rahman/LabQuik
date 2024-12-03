@@ -7,8 +7,8 @@ export interface SingleFieldTableData {
   testMethod: string;
   range: {
     numeric: {
-      minRange: string;
-      maxRange: string;
+      min: string;
+      max: string;
     };
     text: string;
     numeric_unbound: {
@@ -26,8 +26,8 @@ export interface SingleFieldTableData {
 
 interface Range {
   numeric?: {
-    minRange: string;
-    maxRange: string;
+    min: string;
+    max: string;
   };
   text?: string;
   numeric_unbound?: {
@@ -70,8 +70,8 @@ export interface SingleFieldTableData {
   testMethod: string;
   range: {
     numeric: {
-      minRange: string;
-      maxRange: string;
+      min: string;
+      max: string;
     };
     text: string;
     numeric_unbound: {

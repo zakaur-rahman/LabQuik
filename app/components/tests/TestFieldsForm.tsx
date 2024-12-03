@@ -5,8 +5,8 @@ import CustomDropdown from "./CustomDropdown";
 type ComparisonOperator = "<=" | "<" | ">" | "=" | ">=";
 
 type NumericRange = {
-  minRange: string;
-  maxRange: string;
+  min: string;
+  max: string;
 };
 
 type NumericUnbound = {
@@ -176,7 +176,7 @@ const MultipleFieldsForm: React.FC<MultipleFieldsFormProps> = ({
     const getEmptyRange = (type: FieldType) => {
       switch(type) {
         case 'numeric':
-          return { minRange: '', maxRange: '' };
+          return { min: '', max: '' };
         case 'numeric_unbound':
           return { comparisonOperator: '', value: '' };
         case 'custom':
@@ -231,8 +231,8 @@ const MultipleFieldsForm: React.FC<MultipleFieldsFormProps> = ({
             <label className={labelClass}>Range:</label>
             <input
               type="number"
-              name="range.numeric.minRange"
-              value={range.numeric?.minRange || ""}
+              name="range.numeric.min"
+              value={range.numeric?.min || ""}
               onChange={handleTestFieldsDataChange}
               className={inputClass}
               placeholder="Minimum"
@@ -240,8 +240,8 @@ const MultipleFieldsForm: React.FC<MultipleFieldsFormProps> = ({
             <span className="text-gray-400">to</span>
             <input
               type="number"
-              name="range.numeric.maxRange"
-              value={range.numeric?.maxRange || ""}
+              name="range.numeric.max"
+              value={range.numeric?.max || ""}
               onChange={handleTestFieldsDataChange}
               className={inputClass}
               placeholder="Maximum"

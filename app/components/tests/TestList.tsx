@@ -1,35 +1,40 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Search, ListPlus, Edit, RefreshCw, Plus } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import CreateNewTest from './createTest/CreateNewTest';
+import { useEnableTestMutation, useGetAllTestsQuery } from '@/redux/features/test/testApi';
+import { toast } from 'react-hot-toast';
 
 const TestList = () => {
   const router = useRouter();
+  const [tests, setTests] = useState<any[]>([]);
+  const { data: testList, isLoading, isError, isSuccess } = useGetAllTestsQuery(
+    undefined,
+  );
+  const [enableTest, { isLoading: isEnableTestLoading, isError: isEnableTestError, isSuccess: isEnableTestSuccess }] = useEnableTestMutation();
 
   // Sample data - in real app would likely come from props or API
-  const tests = [
-    {
-      id: 1,
-      name: "ULTRASONOGRAPHY OF ARTERIAL SYSTEM OF BOTH LOWER LIMBS PERFORMED",
-      code: "USG OF BOTH LOWER LIMBS PERFORMED",
-      department: "RADIOLOGY",
-      sampleType: "",
-      cost: 5,
-      interpretation: true,
-      enabled: false
-    },
-    {
-      id: 2,
-      name: "2D ECHO",
-      code: "2D ECHO",
-      department: "RADIOLOGY",
-      sampleType: "",
-      cost: 0,
-      interpretation: true,
-      enabled: false
-    },
-    // Add more sample data as needed
-  ];
+
+
+useEffect(() => {
+    if(isEnableTestSuccess) {
+      toast.success("Test enabled successfully");
+    }
+    if(isEnableTestError) {
+      toast.error("Failed to enable test");
+    } 
+  }, [ isEnableTestSuccess, isEnableTestError]);
+
+
+  useEffect(() => {
+    if (isSuccess) {
+      setTests(testList?.data);
+    }
+    if (isError) {
+      console.log(isError);
+    }
+  }, [isSuccess, testList]);
+
 
   const [currentPage, setCurrentPage] = useState(1);
   const totalPages = 13;
@@ -66,11 +71,17 @@ const TestList = () => {
     return buttons;
   };
 
-  const handleEditTest = (testId: number) => {
+  const handleEditTest = (testId: string) => {
     router.push(`/admin?component=EditTest&testId=${testId}`);
   };
   const handleNewTest = () => {
     router.push(`/admin?component=CreateNewTest`);
+  };
+  const handleEnableTest = async (testId: string) => {
+    await enableTest(testId);
+  };
+  const handleDisableTest = (testId: string) => {
+    console.log(testId);
   };
 
   return (
@@ -131,11 +142,11 @@ const TestList = () => {
           <tbody>
             {tests.map((test) => (
               <tr
-                key={test.id}
+                key={test._id}
                 className="border-t hover:bg-gray-50 transition-colors"
               >
-                <td className="px-4 py-3 text-sm">{test.name}</td>
-                <td className="px-4 py-3 text-sm">{test.code}</td>
+                <td className="px-4 py-3 text-sm">{test.testName}</td>
+                <td className="px-4 py-3 text-sm">{test.testCode}</td>
                 <td className="px-4 py-3 text-sm">{test.department}</td>
                 <td className="px-4 py-3 text-sm">{test.sampleType}</td>
                 <td className="px-4 py-3 text-sm">
@@ -149,7 +160,7 @@ const TestList = () => {
                 <td className="px-4 py-3 text-center">
                   <input
                     type="checkbox"
-                    checked={test.interpretation}
+                    //checked={test?.interpretation}
                     className="h-4 w-4 rounded border-gray-300 text-blue-500 focus:ring-blue-500"
                     onChange={() => {}}
                   />
@@ -158,12 +169,12 @@ const TestList = () => {
                   <div className="flex justify-end gap-2">
                     <button 
                       className="flex items-center px-3 py-1 text-sm bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
-                      onClick={() => handleEditTest(test.id)}
+                      onClick={() => handleEditTest(test._id)}
                     >
                       <Edit className="h-4 w-4 mr-1" />
                       Edit
                     </button>
-                    <button
+                   {/*  <button
                       className={`px-3 py-1 text-sm text-white rounded transition-colors ${
                         test.enabled
                           ? 'bg-red-500 hover:bg-red-600'
@@ -171,6 +182,12 @@ const TestList = () => {
                       }`}
                     >
                       {test.enabled ? 'Disable' : 'Enable'}
+                    </button> */}
+                    <button
+                      className={`px-3 py-1 text-sm text-white rounded transition-colors bg-green-500 hover:bg-green-600`}
+                      onClick={() => handleEnableTest(test._id)}
+                    >
+                      Enable
                     </button>
                   </div>
                 </td>

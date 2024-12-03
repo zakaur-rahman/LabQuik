@@ -14,7 +14,7 @@ import { FieldTableData, MultipleFieldsTableData, TestData } from "../types";
 import { validationSchemas, INITIAL_VALUES, INITIAL_FIELD_VALUES } from "../constants";
 
 interface EditTestProps {
-  testId: number;
+  testId: string;
 }
 
 const EditTestPage: React.FC<EditTestProps> = ({ testId }) => {
@@ -71,6 +71,7 @@ const EditTestPage: React.FC<EditTestProps> = ({ testId }) => {
         setFieldType("Single field");
       }
     },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [fieldType, titleName, multipleFieldsData, isEditing, selectedRowIndex]
   );
 
@@ -78,7 +79,17 @@ const EditTestPage: React.FC<EditTestProps> = ({ testId }) => {
   const { data: test, isLoading, isError } = useGetTestQuery(testId);
   useEffect(() => {
     if (test) {
-      console.log(test);
+      basicInfoForm.setValues({
+        department: test?.data?.department,
+        testName: test?.data?.testName,
+        cost: test?.data?.cost,
+        testCode: test?.data?.testCode,
+        sex: test?.data?.sex,
+        sampleType: test?.data?.sampleType,
+        age: test?.data?.age,
+        suffix: test?.data?.suffix,
+      });
+      setTestData(test?.data?.finalData);
     }
   }, [test]);
 

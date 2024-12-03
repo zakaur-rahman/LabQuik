@@ -4,7 +4,9 @@ export const searchTestSlice = apiSlice.injectEndpoints({
   endpoints: (builder) => ({
     searchTest: builder.query({
       query: (searchQuery: string) => ({
-        url: `/tests?query=${searchQuery}`,
+        url: `labs/get-lab-test-by-query?query=${searchQuery}`,
+        method: "GET",
+        credentials: "include",
       }),
     }),
   }),
