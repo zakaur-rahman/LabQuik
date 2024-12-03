@@ -10,8 +10,8 @@ export const validationSchemas = {
     testMethod: yup.string().required("Test method is required"),
     range: yup.object({
       numeric: yup.object({
-        minRange: yup.string().required("Min range is required"),
-        maxRange: yup.string().required("Max range is required"),
+        min: yup.string().required("Min range is required"),
+        max: yup.string().required("Max range is required"),
       }),
       text: yup.string().required("Text is required"),
       numeric_unbound: yup.object({
@@ -59,8 +59,8 @@ export const INITIAL_VALUES = {
     testMethod: "",
     range: {
       numeric: {
-        minRange: "",
-        maxRange: "",
+        min: "",
+        max: "",
       },
       text: "",
       numeric_unbound: {
@@ -91,8 +91,8 @@ export const INITIAL_FIELD_VALUES = {
   testMethod: "",
   range: {
     numeric: {
-      minRange: "",
-      maxRange: "",
+      min: "",
+      max: "",
     },
     text: "",
     numeric_unbound: {

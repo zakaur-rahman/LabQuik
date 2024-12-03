@@ -1,16 +1,29 @@
-import React, { useState } from 'react';
+'use client'
+import React, { useEffect, useState } from 'react';
+import { useSelector } from 'react-redux';
 import { Calendar, Search } from 'lucide-react';
 //import Sidebar from './Sidebar';
 import ViewReport from './ViewReport';
+import { useGetPatientListQuery } from '@/redux/features/patient/getPatientList';
 
 // Update the Patient type to match the structure used in the component
-type Patient = {
-  id: string;
-  details: { name: string; age: string; gender: string };
-  doctor: string;
-  status: string;
-};
 
+interface Patient {
+  id: string;
+  name: string;
+  age: number;
+  gender: string;
+  referringDoctor: string;
+  tests: string[];
+  amount: number;
+  dueAmount: number;
+  date: string;
+  status?: "Ongoing" | "Completed";
+  contact: string;
+  createdBy: string;
+  sampleCollector: string;
+  collectionLocation: string;
+}
 // Update the ViewReportProps type
 interface ViewReportProps {
   patient: Patient;
@@ -22,10 +35,43 @@ const AllReports = ({ onViewReport }: { onViewReport: (patientId: string) => voi
   const [endDate, setEndDate] = useState('2024-10-21');
   const [showCalendar, setShowCalendar] = useState(false);
   const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
+  const [patients, setPatients] = useState<Patient[]>([]);
 
   const tabs = ['All', 'Incomplete', 'Partial', 'Complete'];
+  const token = useSelector((state: any) => state.auth);
 
-  const patients = [
+  const {
+    data: patientsData,
+    isLoading: patientsLoading,
+    isError: patientsError,
+    refetch,
+  } = useGetPatientListQuery(undefined, {
+    skip: !token, // Skip the query if there's no token
+  });
+  useEffect(() => {
+    if (patientsData) {
+      const transformData = patientsData?.patients.map((patient: any) => ({
+        id: patient.patientId,
+        name: `${patient.firstName} ${patient.lastName}`,
+        age: patient.age,
+        gender: patient.gender,
+        referringDoctor: patient.organization?.name || "N/A",
+        tests: patient.bill.tests.map((test: any) => test.name),
+        amount: patient.bill.grandTotal,
+        dueAmount: patient.bill.due,
+        date: new Date(patient.bill.createdAt).toISOString(),
+        status: patient.status === "ongoing" ? "Ongoing" : "Completed",
+        contact: patient.phoneNumber,
+        createdBy: patient.bill.discountedBy || "Unknown",
+        sampleCollector: patient.sampleCollector?.name || "Unknown",
+        collectionLocation: patient.collectedAt?.name || "Unknown",
+      }));
+      setPatients(transformData);
+    }
+  }, [patientsData]);
+
+
+  /* const patients = [
     {
       id: '241021001',
       details: { name: 'ahmad', age: '22 year', gender: 'Male' },
@@ -44,12 +90,12 @@ const AllReports = ({ onViewReport }: { onViewReport: (patientId: string) => voi
       doctor: 'Tony',
       status: 'Ongoing'
     }
-  ];
+  ]; */
 
   return (
     <>
       {selectedPatient ? (
-        <ViewReport patient={selectedPatient} onClose={() => setSelectedPatient(null)} />
+        <ViewReport patient={selectedPatient.id} onClose={() => setSelectedPatient(null)} />
       ) : (
         <>
           {/* Search and filters */}
@@ -112,14 +158,14 @@ const AllReports = ({ onViewReport }: { onViewReport: (patientId: string) => voi
                     <tr key={patient.id} className="border-b">
                       <td className="px-6 py-4 text-sm">{patient.id}</td>
                       <td className="px-6 py-4">
-                        <div className="text-sm font-medium">{patient.details.name}</div>
+                        <div className="text-sm font-medium">{patient.name}</div>
                         <div className="text-sm text-gray-500">
-                          {patient.details.age}, {patient.details.gender}
+                          {patient.age}, {patient.gender}
                         </div>
                       </td>
-                      <td className="px-6 py-4 text-sm">{patient.doctor}</td>
-                      <td className="px-6 py-4 text-sm">-</td>
-                      <td className="px-6 py-4 text-sm">-</td>
+                      <td className="px-6 py-4 text-sm">{patient.referringDoctor}</td>
+                      <td className="px-6 py-4 text-sm">{patient.tests.join(', ')}</td>
+                      <td className="px-6 py-4 text-sm"> {new Date(patient.date).toLocaleDateString()}</td>
                       <td className="px-6 py-4">
                         <span className="px-3 py-1 text-blue-600 bg-blue-50 rounded-full text-sm">
                           {patient.status}
