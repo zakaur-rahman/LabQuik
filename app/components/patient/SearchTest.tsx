@@ -31,12 +31,12 @@ const SearchTest: React.FC<SearchTestProps> = ({ onSelect }) => {
 
   // Update filtered items based on API data
   useEffect(() => {
-    if (data?.length) {
+    if (data?.tests?.length) {
       setFilteredItems(
-        data.map((item: any) => ({
+        data?.tests.map((item: any) => ({
           testId: item._id,
-          name: item.name,
-          price: item.price,
+          name: item.testName,
+          price: item.cost,
         }))
       );
     } else {
@@ -76,7 +76,7 @@ const SearchTest: React.FC<SearchTestProps> = ({ onSelect }) => {
               className="px-3 py-2 cursor-pointer hover:bg-gray-100"
               onClick={() => handleSelectItem(item)}
             >
-              {item.name} - ${item.price}
+              {item.name} - Rs.{item.price}
             </li>
           ))}
         </ul>
