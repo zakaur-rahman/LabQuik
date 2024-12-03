@@ -18,11 +18,33 @@ export const testApi = apiSlice.injectEndpoints({
     }),
     getTest: builder.query({
       query: (testId) => ({
-        url: `get-test/${testId}`,
+        url: `tests/${testId}`,
         method: "GET",
+      }),
+    }),
+    getAllTests: builder.query({
+      query: () => ({
+        url: "tests",
+        method: "GET",
+        credentials: "include",
+      }),
+    }),
+    enableTest: builder.mutation({
+      query: (testId) => ({
+        url: `labs/add-test-to-lab`,
+        method: "PUT",
+        body: {
+          testId,
+        },
       }),
     }),
   }),
 });
 
-export const { useCreateTestMutation, useUpdateTestMutation, useGetTestQuery } = testApi;
+export const {
+  useCreateTestMutation,
+  useUpdateTestMutation,
+  useGetTestQuery,
+  useGetAllTestsQuery,
+  useEnableTestMutation,
+} = testApi;
