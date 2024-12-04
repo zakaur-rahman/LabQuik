@@ -88,12 +88,7 @@ const AdminDashboard = () => {
       case "ViewReport":
         return patientId ? (
           <ViewReport
-            patient={{
-              id: patientId,
-              details: { name: "", age: "", gender: "" },
-              doctor: "",
-              status: "",
-            }}
+            patient={patientId}
             onClose={() => handleComponentChange("PatientReport")}
           />
         ) : null;
