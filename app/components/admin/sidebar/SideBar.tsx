@@ -214,7 +214,7 @@ export const Playground: React.FC<PlaygroundProps> = ({ collapsed, setCollapsed,
             rtl={rtl}
             collapsed={collapsed}
             setCollapsed={setCollapsed}
-            className="pb-6 mt-4"
+            className="pb-6 mt-4 h-12"
           /> 
 
           <Menu menuItemStyles={menuItemStyles}>
