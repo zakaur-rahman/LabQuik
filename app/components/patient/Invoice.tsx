@@ -1,6 +1,5 @@
 import React, { useState, useRef, useMemo } from "react";
 import { useSelector } from "react-redux";
-import { X } from "lucide-react";
 
 interface InvoiceProps {
   invoiceData: {
