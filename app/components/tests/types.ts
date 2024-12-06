@@ -2,8 +2,8 @@ export interface SingleFieldTableData {
   name: string;
   fieldType: string;
   field: string;
-  units: string;
-  formula: string;
+  units?: string;
+  formula?: string;
   testMethod: string;
   range: {
     numeric: {
@@ -45,8 +45,8 @@ export interface FieldTableData {
   name: string;
   fieldType: string;
   field: string;
-  units: string;
-  formula: string;
+  units?: string;
+  formula?: string;
   testMethod: string;
   range: Range;
 }
@@ -65,8 +65,8 @@ export interface SingleFieldTableData {
   fieldType: string;
   name: string;
   field: string;
-  units: string;
-  formula: string;
+  units?: string;
+  formula?: string;
   testMethod: string;
   range: {
     numeric: {
