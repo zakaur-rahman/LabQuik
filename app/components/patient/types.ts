@@ -1,34 +1,3 @@
-interface BillingInfo {
-  discountPercent: string;
-  discountAmount: string;
-  paidAmount: string;
-  paymentMode: "Cash" | "Card" | "Online"; // Assuming different payment modes can be added
-  tests: string[]; // Assuming tests are represented as an array of strings; update if they have a different type
-  discountedBy: string;
-  reasonOfDiscount: string;
-  total: number;
-  grandTotal: number;
-  invoiceNumber: string;
-  homeCollectionCharge: number;
-  transactionId: string;
-}
-
-interface FormData {
-  patientId: string;
-  designation: "MR" | "MS" | "MRS"; // Assuming there are predefined values
-  firstName: string;
-  lastName: string;
-  phoneNumber: string;
-  gender: "male" | "female" | "other"; // Assuming gender options are limited
-  email: string;
-  age: string;
-  ageType: "Year" | "Month" | "Day"; // Assuming ageType has limited options
-  address: string;
-  sampleCollector: string;
-  organisation: string;
-  collectedAt: string;
-  //billing: BillingInfo;
-}
 
 export interface Patient {
   patientId: string;
@@ -81,3 +50,4 @@ export interface Patient {
     __v: number;
   }
   
+
