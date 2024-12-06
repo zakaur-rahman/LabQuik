@@ -147,7 +147,7 @@ const CustomDropdown: React.FC<DropdownProps> = ({
                 }`}
                 onClick={() => toggleOption(option)}
                 role="option"
-                aria-selected={selectedOptions.includes(option)}
+                aria-selected={selectedOptions.includes(option).toString()}
               >
                 <span>{option}</span>
                 {selectedOptions.includes(option) && (
