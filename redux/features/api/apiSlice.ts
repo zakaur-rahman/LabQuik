@@ -34,6 +34,7 @@ export const apiSlice = createApi({
       },
     }),
   }),
+  tagTypes: ['Test'],
 });
 
 export const { useRefreshTokenQuery, useLoadUserQuery } = apiSlice;
