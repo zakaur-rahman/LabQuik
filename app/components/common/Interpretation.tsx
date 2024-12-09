@@ -5,11 +5,12 @@ import { XIcon } from 'lucide-react';
 interface InterpretationProps {
   onClose: () => void;
   onSave: (data: any) => void;
+  interpretation: string;
   setOpen: (open: boolean) => void;
 }
 
-const Interpretation: React.FC<InterpretationProps> = ({ onClose, onSave, setOpen }) => {
-  const [content, setContent] = useState('');
+const Interpretation: React.FC<InterpretationProps> = ({ onClose, onSave, setOpen, interpretation }) => {
+  const [content, setContent] = useState(interpretation);
 
   const handleSave = () => {
     onSave({ content });
