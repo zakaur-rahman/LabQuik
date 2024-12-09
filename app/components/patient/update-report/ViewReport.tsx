@@ -1,108 +1,205 @@
-import { Edit2 } from 'lucide-react';
-import React, { useState } from 'react';
-import { TestData } from '../../tests/types';
-import { demoTestData } from '../constants';
-import MedicalTestForm from './MedicalTestForm';
-import * as yup from 'yup';
+"use client";
+import React, { useEffect, useState } from "react";
+import MedicalTestForm from "./MedicalTestForm";
+import { usePatientDetailsForReportQuery } from "@/redux/features/patient/patientReport";
+import CustomModal from "@/app/utils/CustomModal";
+import ApproveAndPrintReport from "./ApproveAndPrintReport";
+import PrintWrap from "./PrintWrap";
 
-// Define the Patient type (should match the one in AllReports.tsx)
-type Patient = {
-  id: string;
-};
-
-// Define the props for the ViewReport component
 interface ViewReportProps {
-  patient: Patient;
+  patient: string;
   onClose: () => void;
 }
 
-const validationSchema = yup.object({
-  testName: yup.string().required('Test name is required'),
-});
-// Button Component
-const Button = ({ variant = 'default', size = 'default', className = '', children, ...props }: {
-  variant?: 'default' | 'secondary' | 'outline' | 'ghost';
-  size?: 'default' | 'sm' | 'lg' | 'icon';
-  className?: string;
-  children: React.ReactNode;
-  [key: string]: any;
-}) => {
-  const baseStyles = 'inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50';
-  
-  const variants = {
-    default: 'bg-blue-500 text-white hover:bg-blue-600',
-    secondary: 'bg-gray-100 text-gray-900 hover:bg-gray-200',
-    outline: 'border border-gray-200 bg-white hover:bg-gray-100',
-    ghost: 'hover:bg-gray-100'
-  };
-  
-  const sizes = {
-    default: 'h-9 px-4 py-2',
-    sm: 'h-8 px-3 text-xs',
-    lg: 'h-10 px-8',
-    icon: 'h-9 w-9'
+const ReportEditor: React.FC<ViewReportProps> = ({ patient }) => {
+  // State
+  const [activeTab, setActiveTab] = useState("tests");
+  const [patientDetails, setPatientDetails] = useState<any>(null);
+  const [formRef, setFormRef] = useState<HTMLFormElement | null>(null);
+  const [showPreview, setShowPreview] = useState(false);
+  const [showPrint, setShowPrint] = useState(false);
+  const [previewData, setPreviewData] = useState<any>(null);
+  const [formData, setFormData] = useState<{ [key: string]: string }>({});
+  const [showInterpretations, setShowInterpretations] = useState<{
+    [key: string]: boolean;
+  }>({});
+
+  // Fetch patient data
+  const { data: patientData } = usePatientDetailsForReportQuery(patient);
+
+  useEffect(() => {
+    setPatientDetails(patientData?.data);
+  }, [patientData]);
+
+  // Form handlers
+  const handleObservedValueChange = (
+    event: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
+    fieldName: string,
+    testCode: string
+  ) => {
+    const key = `${testCode}-${fieldName}`;
+    const value = event.target.value;
+
+    setFormData((prev) => ({
+      ...prev,
+      [key]: value,
+    }));
   };
 
-  return (
-    <button
-      className={`${baseStyles} ${variants[variant]} ${sizes[size]} ${className}`}
-      {...props}
-    >
-      {children}
-    </button>
+  const handleInterpretationToggle = (testCode: string) => {
+    setShowInterpretations((prev) => ({
+      ...prev,
+      [testCode]: !prev[testCode],
+    }));
+  };
+
+  const formatFormDataForSubmission = () => {
+    const formattedTests = patientDetails?.tests?.map((test: any) => ({
+      ...test,
+      showInterpretation: showInterpretations[test.testCode] || false,
+      finalData: test.finalData.map((item: any) => {
+        if ("fieldType" in item && item.fieldType === "Single field") {
+          return {
+            ...item,
+            observedValue:
+              formData[`${test.testCode}-${(item as any).name}`] || "",
+          };
+        } else if ("multipleFieldsData" in item) {
+          return {
+            ...item,
+            multipleFieldsData: item.multipleFieldsData.map((subField: any) => ({
+              ...subField,
+              observedValue:
+                formData[`${test.testCode}-${subField.name}`] || "",
+            })),
+          };
+        }
+        return item;
+      }),
+    }));
+
+    return {
+      ...patientDetails,
+      status: "ongoing",
+      tests: formattedTests || [],
+    };
+  };
+
+  const handleFormSubmit = (event: React.FormEvent) => {
+    event.preventDefault();
+    const formattedData = formatFormDataForSubmission();
+    console.log("Formatted Data:", formattedData);
+    // Here you can add your API call to save the data
+  };
+
+  const handlePreview = (e: React.MouseEvent<HTMLButtonElement>) => {
+    e.preventDefault();
+    try {
+      const formattedData = formatFormDataForSubmission();
+      setPreviewData(formattedData);
+      setShowPreview(true);
+    } catch (error) {
+      console.error('Preview error:', error);
+    }
+  };
+
+  // Modal wrapper component
+  const PreviewWrapper = ({ setOpen }: { setOpen: (open: boolean) => void }) => (
+    <div className="w-full h-full">
+      <ApproveAndPrintReport 
+        reportData={previewData}
+        onClose={() => setOpen(false)}
+      />
+    </div>
   );
-};
+  const PrintWrapper = ({ setOpen }: { setOpen: (open: boolean) => void }) => (
+    <div className="w-full h-full">
+      <PrintWrap
+        reportData={previewData}
+        onClose={() => setOpen(false)}
+      />
+    </div>
+  );
 
-// Tab Component
-const Tab = ({ active, children, onClick }: { active: boolean; children: React.ReactNode; onClick: () => void }) => (
-  <button
-    className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
-      active ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'
-    }`}
-    onClick={onClick}
-  >
-    {children}
-  </button>
-);
-
-
-// Main UltrasoundReportEditor Component
-const ReportEditor: React.FC<ViewReportProps> = ({ patient, onClose }) => {
-  const [activeTab, setActiveTab] = useState('tests');
-  const [showInterpretation, setShowInterpretation] = useState(false);
-
+  const handlePrint = () => {
+    try {
+      const formattedData = formatFormDataForSubmission();
+      setPreviewData(formattedData);
+      setShowPrint(true);
+    } catch (error) {
+      console.error('Preview error:', error);
+    }
+  };
 
   return (
     <div className="w-full text-black mx-auto p-4">
       {/* Header */}
-      <div className="flex justify-between items-center mb-4">
+      <div className="flex justify-between items-center my-4 border border-gray-200 p-4 rounded-lg">
         <div className="flex gap-6">
-          <span>Name: {patient?.details.name}</span>
-          <span>Gender: {patient?.details.gender}</span>
-          <span>Age: {patient?.details.age}</span>
-          <span className="text-green-500">Status: {patient?.status}</span>
+          <span>
+            <strong className="text-md">Name:</strong>{" "}
+            {patientDetails?.firstName} {patientDetails?.lastName}
+          </span>
+          <span>
+            <strong className="text-md">Gender:</strong> {patientDetails?.gender}
+          </span>
+          <span>
+            <strong className="text-md">Age:</strong> {patientDetails?.age}
+          </span>
+          <span className="">
+            <strong className="text-md">Status:</strong> {patientDetails?.status}
+          </span>
         </div>
         <div className="flex gap-2">
-          <Button variant="secondary">Print</Button>
-          <Button variant="secondary">Save</Button>
-          <Button variant="outline">View more</Button>
+          <button className="bg-blue-500 text-white px-4 py-2 rounded-md" onClick={handleFormSubmit}>Save</button>
+          <button className="bg-gray-500 text-white px-4 py-2 rounded-md" type="button" onClick={handlePreview}>
+            Report Preview
+          </button>
         </div>
       </div>
 
       {/* Main Content */}
-      <div className="border rounded-lg bg-white shadow-sm p-4">
-        {/* Tabs */}
-        <MedicalTestForm testData={demoTestData} />
+      <div className="border rounded-lg bg-white shadow-sm">
+        <MedicalTestForm
+          testData={patientDetails?.tests}
+          patientInfo={{
+            patientId: patientDetails?.patientId,
+            firstName: patientDetails?.firstName,
+            lastName: patientDetails?.lastName,
+            age: patientDetails?.age,
+            ageType: patientDetails?.ageType,
+            gender: patientDetails?.gender,
+          }}
+          formRef={setFormRef}
+          formData={formData}
+          showInterpretations={showInterpretations}
+          onObservedValueChange={handleObservedValueChange}
+          onInterpretationToggle={handleInterpretationToggle}
+          onSubmit={handleFormSubmit}
+        />
       </div>
 
       {/* Footer */}
       <div className="flex justify-between items-center mt-4">
         <div className="flex gap-2">
-          <Button variant="secondary">Note on Report</Button>
-          <Button variant="outline">Add Issue for technician</Button>
+          <button className="bg-gray-500 text-white px-4 py-2 rounded-md">Note on Report</button>
+          <button className="bg-gray-500 text-white px-4 py-2 rounded-md">Add Issue for technician</button>
         </div>
-        <Button>Approve & Print</Button>
+        <button className="bg-gray-500 text-white px-4 py-2 rounded-md" onClick={handlePrint}>Approve and Print</button>
       </div>
+
+      <CustomModal
+        open={showPreview}
+        setOpen={setShowPreview}
+        component={PreviewWrapper}
+        className="w-[800px] max-h-[95vh] overflow-y-hidden"
+      />
+      <CustomModal
+        open={showPrint}
+        setOpen={setShowPrint}
+        component={PrintWrapper}  
+        className="w-[900px] max-h-[95vh] overflow-y-hidden"
+      />
     </div>
   );
 };

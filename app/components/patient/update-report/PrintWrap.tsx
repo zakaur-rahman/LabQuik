@@ -6,9 +6,10 @@ import ReportTable from "./prepare-report/ReportTable";
 import HeaderImage from "@/public/assests/header.png";
 import FooterImage from "@/public/assests/footer.png";
 import TestInterpretation from "./prepare-report/TestInterpretation";
-import Sample from "./Sample";
+import Sample from "./TestReportPDF";
 import { downloadReport, printReport, sendReport } from "./utils/reportActions";
 import { PDFViewer } from "@react-pdf/renderer";
+import { ErrorBoundary } from 'react-error-boundary';
 
 interface TestResult {
   department: string;
@@ -170,16 +171,18 @@ console.log("reportData", reportData);
       </div>
 
       {/* PDF Viewer */}
-      <div className="flex-1 overflow-y-auto">
-        <PDFViewer style={{width: '100%', height: '700px'}}>
-          <Sample 
-            reportData={filteredTestResults}
+      <div className="flex-1 w-full overflow-y-auto">
+        <ErrorBoundary fallback={<div>Error loading PDF</div>}>
+          <PDFViewer style={{width: '100%', height: '650px'}}>
+            <Sample 
+              reportData={filteredTestResults}
             showHeaderFooter={settings.showHeaderFooter}
             selectedTests={selectedTests}
             separateTestReports={settings.separateTestReports}
             patientDetails={patientDetails}
           />
         </PDFViewer>
+        </ErrorBoundary>
       </div>
     </div>
   );

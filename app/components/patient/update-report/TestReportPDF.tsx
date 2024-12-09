@@ -12,8 +12,8 @@ import {
 import { QRCodeSVG } from "qrcode.react";
 import { svgToPngDataUrl } from "./utils/svgToPng";
 import ReactDOMServer from "react-dom/server";
-import HeaderImage from "@/public/assests/header.png";
-import FooterImage from "@/public/assests/footer.png";
+import HeaderImage from "@/public/assests/header1.png";
+import FooterImage from "@/public/assests/footer1.png";
 // Register fonts
 Font.register({
   family: "Helvetica",
@@ -26,15 +26,27 @@ Font.register({
 // Styles
 const styles = StyleSheet.create({
   page: {
+    position: "relative",
     fontFamily: "Helvetica",
+    padding: "120pt 0",
   },
   header: {
-    marginBottom: "5pt",
-    flexDirection: "row",
-    justifyContent: "space-between",
-    position: "relative",
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    height: "120pt",
   },
-
+  footer: {
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: "100pt",
+  },
+  contentWrapper: {
+    flex: 1,
+  },
   patientSection: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -94,10 +106,14 @@ const styles = StyleSheet.create({
     borderColor: "#000",
   },
   tableCell: {
-    padding: "1pt",
+    padding: "1pt 0 1pt 5pt",
     fontSize: 9,
-    //borderRightWidth: 1,
-    //borderColor: "#000",
+  },
+  interpretationTableCell: {
+    flex: 1,
+    padding: '1pt',
+    fontSize: 8,
+    color: '#444',
   },
   testNameCell: {
     width: "40%",
@@ -127,40 +143,14 @@ const styles = StyleSheet.create({
     fontFamily: "Helvetica-Bold",
     marginBottom: "5pt",
   },
-  footer: {
-    position: "absolute",
-    bottom: "30pt",
-    left: "30pt",
-    right: "30pt",
-    borderTop: "1pt solid #000",
-    paddingTop: "15pt",
-  },
-  signatureSection: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginBottom: "15pt",
-  },
-  signature: {
-    width: "200pt",
-    alignItems: "center",
-  },
-  signatureLine: {
-    width: "150pt",
-    borderBottomWidth: 1,
-    borderColor: "#000",
-    marginBottom: "5pt",
-  },
-  signatureText: {
-    fontSize: 9,
-    textAlign: "center",
-  },
+ 
   disclaimer: {
     fontSize: 8,
     textAlign: "center",
     color: "#666",
   },
   tableCellTest: {
-    padding: "1pt",
+    padding: "1pt 0 1pt 5pt",
     fontSize: 9,
     //borderRightWidth: 1,
     //borderColor: "#000",
@@ -190,16 +180,19 @@ const styles = StyleSheet.create({
     width: "25%",
   },
   tableRow: {
-    flexDirection: "row",
-    //borderBottomWidth: 1,
-    //borderColor: "#000",
-    padding: "1pt",
+    flexDirection: 'row',
+    padding: '1pt',
+  },
+  interpretationTableRow: {
+    flexDirection: 'row',
+    borderBottomWidth: 1,
+    borderColor: '#000',
   },
   testCol: {
     width: "40%",
   },
   tableCellChild: {
-    padding: "1pt",
+    padding: "1pt 0 1pt 5pt",
     fontSize: 9,
     //borderRightWidth: 1,
     //borderColor: "#000",
@@ -207,7 +200,7 @@ const styles = StyleSheet.create({
     paddingLeft: "20pt",
   },
   tableCellBold: {
-    padding: "1pt",
+    padding: "1pt 0 1pt 5pt",
     fontSize: 9,
    // borderRightWidth: 1,
     //borderColor: "#000",
@@ -274,7 +267,7 @@ const styles = StyleSheet.create({
   },
   interpretation: {
     marginTop: "15pt",
-    padding: "10pt",
+    padding: "5pt",
     backgroundColor: "#f5f5f5",
   },
   interpretationTitle: {
@@ -289,6 +282,12 @@ const styles = StyleSheet.create({
   headerImage: {
     width: "100%",
     height: "100pt",
+  },
+  interpretationTable: {
+    width: '100%',
+    marginVertical: '1pt',
+    borderWidth: 1,
+    borderColor: '#000',
   },
 });
 
@@ -420,82 +419,148 @@ const TestReportPDF = ({
     </View>
   );
 
+  const parseHtmlInterpretation = (htmlContent: string) => {
+    // Remove any script tags for security
+    const sanitizedHtml = htmlContent
+      .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
+      .replace(/<style\b[^<]*(?:(?!<\/style>)<[^<]*)*<\/style>/gi, '');
+
+    // Convert common HTML entities
+    const decodedHtml = sanitizedHtml
+      .replace(/&nbsp;/g, ' ')
+      .replace(/&lt;/g, '<')
+      .replace(/&gt;/g, '>')
+      .replace(/&amp;/g, '&');
+
+    // Extract table content if exists
+    const hasTable = decodedHtml.includes('<table');
+    const beforeTable = hasTable ? decodedHtml.split('<table')[0] : decodedHtml;
+    const tableMatch = hasTable ? decodedHtml.match(/<table[^>]*>([\s\S]*?)<\/table>/i) : null;
+    const afterTable = hasTable ? decodedHtml.split('</table>')[1] : '';
+
+    return (
+      <View>
+        {/* Render text before table */}
+        <Text style={styles.interpretationText}>
+          {beforeTable.replace(/<[^>]+>/g, '').trim()}
+        </Text>
+
+        {/* Render table if exists */}
+        {tableMatch && (
+          <View style={styles.interpretationTable}>
+            {tableMatch[1]
+              .match(/<tr[^>]*>([\s\S]*?)<\/tr>/gi)
+              ?.map((row, rowIndex) => {
+                const cells = row.match(/<t[dh][^>]*>([\s\S]*?)<\/t[dh]>/gi) || [];
+                return (
+                  <View key={rowIndex} style={styles.interpretationTableRow}>
+                    {cells.map((cell, cellIndex) => {
+                      const isHeader = cell.startsWith('<th');
+                      const content = cell
+                        .replace(/<\/?t[dh][^>]*>/g, '')
+                        .replace(/<[^>]+>/g, '')
+                        .trim();
+                      return (
+                        <Text
+                          key={cellIndex}
+                          style={[
+                            styles.interpretationTableCell,
+                            isHeader ? { fontFamily: 'Helvetica-Bold' } : {}
+                          ]}
+                        >
+                          {content}
+                        </Text>
+                      );
+                    })}
+                  </View>
+                );
+              })}
+          </View>
+        )}
+
+        {/* Render text after table */}
+        {afterTable && (
+          <Text style={styles.interpretationText}>
+            {afterTable.replace(/<[^>]+>/g, '').trim()}
+          </Text>
+        )}
+      </View>
+    );
+  };
+
   return (
     <Document>
       {reportsToRender?.map((report: any, index: any) => (
         <Page key={index} size="A4" style={styles.page}>
           {showHeaderFooter && (
-            <View style={styles.header}>
-              <Image style={styles.headerImage} src={HeaderImage.src} />
-            </View>
+            <>
+              <View style={styles.header} fixed>
+                <Image style={styles.headerImage} src={HeaderImage.src} />
+              </View>
+              <View style={styles.footer} fixed>
+                <Image style={styles.headerImage} src={FooterImage.src} />
+              </View>
+            </>
           )}
 
-          <View style={styles.patientInfo}>
-            {/* Patient Details - 40% */}
-            <View style={styles.patientDetails}>
-              <Text style={styles.patientName}>
-                {report.designation} {report.firstName} {report.lastName}
-              </Text>
-              <View style={styles.infoRow}>
-                <Text style={styles.label}>Age / Sex</Text>
-                <Text style={styles.value}>: {report.age} YRS / {report.gender}</Text>
-              </View>
-              <View style={styles.infoRow}>
-                <Text style={styles.label}>Referred by</Text>
-                <Text style={styles.value}>: {report.referredBy || "Self"}</Text>
-              </View>
-              <View style={styles.infoRow}>
-                <Text style={styles.label}>Reg. no.</Text>
-                <Text style={styles.value}>: {report.patientId}</Text>
-              </View>
-            </View>
-
-            {/* Date Information - 30% */}
-            <View style={styles.dateInfo}>
-              {["Registered on", "Collected on", "Received on", "Reported on"].map(
-                (label, index) => (
-                  <View key={index} style={styles.infoRow}>
-                    <Text style={styles.label}>{label}</Text>
-                    <Text style={styles.value}>
-                      : 17/10/2024 {index % 2 === 0 ? "04:55 PM" : ""}
-                    </Text>
-                  </View>
-                )
-              )}
-            </View>
-
-            {/* QR Code Section - 20% */}
-            <View style={styles.qrSection}>
-              <Text style={styles.qrText}>Scan to download</Text>
-              {qrDataUrl && <Image style={styles.qrCode} src={qrDataUrl} />}
-            </View>
-          </View>
-
-          {report?.tests?.map((test: any, testIndex: number) => (
-            <View key={testIndex} style={styles.testSection}>
-              <View style={styles.testHeader}>
-                <Text style={styles.departmentName}>{test.department}</Text>
-                <Text style={styles.testName}>{test.testName}</Text>
-              </View>
-              <TestTable test={test?.fields} />
-              {test.showInterpretation && (
-                <View style={styles.interpretation}>
-                  <Text style={styles.interpretationTitle}>
-                    Interpretations:
-                  </Text>
-                  <Text style={styles.interpretationText}>
-                    {test.interpretation}
-                  </Text>
+          <View style={styles.contentWrapper}>
+            <View style={styles.patientInfo}>
+              {/* Patient Details - 40% */}
+              <View style={styles.patientDetails}>
+                <Text style={styles.patientName}>
+                  {report.designation} {report.firstName} {report.lastName}
+                </Text>
+                <View style={styles.infoRow}>
+                  <Text style={styles.label}>Age / Sex</Text>
+                  <Text style={styles.value}>: {report.age} YRS / {report.gender}</Text>
                 </View>
-              )}
-            </View>
-          ))}
+                <View style={styles.infoRow}>
+                  <Text style={styles.label}>Referred by</Text>
+                  <Text style={styles.value}>: {report.referredBy || "Self"}</Text>
+                </View>
+                <View style={styles.infoRow}>
+                  <Text style={styles.label}>Reg. no.</Text>
+                  <Text style={styles.value}>: {report.patientId}</Text>
+                </View>
+              </View>
 
-          {showHeaderFooter && (
-            <View style={styles.footer}>
-              <Image style={styles.headerImage} src={FooterImage.src} />
+              {/* Date Information - 30% */}
+              <View style={styles.dateInfo}>
+                {["Registered on", "Collected on", "Received on", "Reported on"].map(
+                  (label, index) => (
+                    <View key={index} style={styles.infoRow}>
+                      <Text style={styles.label}>{label}</Text>
+                      <Text style={styles.value}>
+                        : 17/10/2024 {index % 2 === 0 ? "04:55 PM" : ""}
+                      </Text>
+                    </View>
+                  )
+                )}
+              </View>
+
+              {/* QR Code Section - 20% */}
+              <View style={styles.qrSection}>
+                <Text style={styles.qrText}>Scan to download</Text>
+                {qrDataUrl && <Image style={styles.qrCode} src={qrDataUrl} />}
+              </View>
             </View>
-          )}
+
+            {report?.tests?.map((test: any, testIndex: number) => (
+              <View key={testIndex} style={styles.testSection} break={testIndex > 0}>
+                <View style={styles.testHeader}>
+                  <Text style={styles.departmentName}>{test.department}</Text>
+                  <Text style={styles.testName}>{test.testName}</Text>
+                </View>
+                <TestTable test={test?.fields} />
+                {test.showInterpretation && (
+                  <View style={styles.interpretation}>
+                    <Text style={styles.interpretationTitle}>Clinical Notes:</Text>
+                    {parseHtmlInterpretation(test.interpretation)}
+                  </View>
+                )}
+              </View>
+            ))}
+          </View>
         </Page>
       ))}
     </Document>
