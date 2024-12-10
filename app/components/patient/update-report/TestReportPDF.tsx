@@ -18,8 +18,8 @@ import FooterImage from "@/public/assests/footer1.png";
 Font.register({
   family: "Helvetica",
   fonts: [
-    { src: "path-to/Helvetica.ttf" },
-    { src: "path-to/Helvetica-Bold.ttf", fontWeight: "bold" },
+    { src: "/public/fonts/Helvetica.ttf" },
+    { src: "/public/fonts/Helvetica-Bold.ttf", fontWeight: "bold" },
   ],
 });
 
@@ -28,14 +28,14 @@ const styles = StyleSheet.create({
   page: {
     position: "relative",
     fontFamily: "Helvetica",
-    padding: "120pt 0",
+    padding: "110pt 0",
   },
   header: {
     position: "absolute",
     top: 0,
     left: 0,
     right: 0,
-    height: "120pt",
+    height: "100pt",
   },
   footer: {
     position: "absolute",
@@ -289,6 +289,15 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#000',
   },
+  flagIndicator: {
+    marginLeft: '8pt',
+    paddingLeft: '4pt',
+  },
+  
+  boldRow: {
+    fontFamily: 'Helvetica-Bold',
+  },
+  
 });
 
 // Components
@@ -382,36 +391,48 @@ const TestReportPDF = ({
         <Text style={styles.tableCellReference}>REFERENCE</Text>
       </View>
       {test?.map((field: any, index: any) => (
-        <View key={index} style={styles.tableRow}>
-          <View style={styles.testCol}>
-            <Text
-              style={
-                field.isChild
-                  ? styles.tableCellChild
-                  : field.flag
-                  ? styles.tableCellBold
-                  : styles.tableCell
-              }
-            >
-              {field.test}
-              {field.flag && field.flag !== "D" && (
-                <Text
-                  style={
-                    field.flag === "H"
-                      ? styles.abnormalHigh
-                      : styles.abnormalLow
-                  }
-                >
-                  {` ${field.flag}`}
-                </Text>
-              )}
-            </Text>
-          </View>
-          {!field.isParent && (
-            <>
-              <Text style={styles.tableCellValue}>{field.value}</Text>
-              <Text style={styles.tableCellUnit}>{field.unit}</Text>
-              <Text style={styles.tableCellReference}>{field.reference}</Text>
+  <View key={index} style={styles.tableRow}>
+    <View style={styles.testCol}>
+      <Text
+        style={[
+          styles.tableCell,
+          field.isChild && styles.tableCellChild,
+          field.flag && styles.boldRow
+        ]}
+      >
+        {field.test}
+        {field.flag && field.flag !== "D" && (
+          <Text
+            style={[
+              field.flag === "H"
+                ? styles.abnormalHigh
+                : styles.abnormalLow,
+              styles.flagIndicator
+            ]}
+          >
+            {"\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0"}{field.flag}
+          </Text>
+        )}
+      </Text>
+    </View>
+    {!field.isParent && (
+      <>
+        <Text 
+          style={[
+            styles.tableCellValue,
+            field.flag && styles.boldRow,
+            field.flag === "H" && styles.abnormalHigh,
+            field.flag === "L" && styles.abnormalLow
+          ]}
+        >
+          {field.value}
+        </Text>
+        <Text style={[styles.tableCellUnit, field.flag && styles.boldRow]}>
+          {field.unit}
+        </Text>
+        <Text style={[styles.tableCellReference, field.flag && styles.boldRow]}>
+          {field.reference}
+        </Text>
             </>
           )}
         </View>
