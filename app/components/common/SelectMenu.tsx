@@ -4,7 +4,7 @@ import { Plus, ChevronDown } from "lucide-react";
 interface SelectMenuProps {
   label: string;
   options: { id: string; name: string; type?: string }[];
-  value: { id: string; name: string };
+  value?: { id?: string; name?: string };
   onChange: (value: { id: string; name: string }) => void;
   onAdd?: () => void;
   placeholder?: string;
@@ -82,7 +82,7 @@ const SelectMenu: React.FC<SelectMenuProps> = ({
               type="text"
               className="flex-grow outline-none"
               placeholder="Type to search"
-              value={isOpen ? searchQuery : value.name}
+              value={isOpen ? searchQuery : value?.name}
               onChange={handleInputChange}
             />
             <ChevronDown className="w-5 h-5 text-gray-400" />
@@ -94,7 +94,7 @@ const SelectMenu: React.FC<SelectMenuProps> = ({
                   <li
                     key={option.id}
                     className={`px-3 py-2 cursor-pointer ${
-                      option.id === value.id
+                      option.id === value?.id
                         ? "bg-blue-100 font-semibold"
                         : "hover:bg-gray-100"
                     }`}
