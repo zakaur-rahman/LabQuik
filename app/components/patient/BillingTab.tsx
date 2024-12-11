@@ -169,6 +169,20 @@ const BillingTab: React.FC<BillingTabProps> = ({ onClose, values, onRegisterAndP
     setFieldValue("due", totals.due);
   }, [totals]);
 
+  useEffect(() => {
+    setFieldValue('paidAmount', totals.total);
+  }, [totals.total, setFieldValue]);
+
+  const handlePaidAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = Number(e.target.value);
+    if (value <= totals.total) {
+      setFieldValue('paidAmount', value);
+    } else {
+      toast.error("Paid amount cannot exceed total amount");
+      setFieldValue('paidAmount', totals.total);
+    }
+  };
+
   
 
   
@@ -221,6 +235,13 @@ const BillingTab: React.FC<BillingTabProps> = ({ onClose, values, onRegisterAndP
       return;
     }
     setFieldValue("tests", [...billingValues.tests, item]);
+  };
+
+  const handleChangeTestPrice = (testId: string, newPrice: string) => {
+    const updatedTests = billingValues.tests.map((test: { testId: string; name: string; price: number }) => 
+      test.testId === testId ? { ...test, price: Number(newPrice) } : test
+    );
+    setFieldValue('tests', updatedTests);
   };
 
   return (
@@ -301,7 +322,7 @@ const BillingTab: React.FC<BillingTabProps> = ({ onClose, values, onRegisterAndP
                 <div className="overflow-x-auto">
                   <table className="w-full">
                     <thead>
-                      <tr className="border-b">
+                      <tr className="border-b justify-between">
                         <th className="text-left py-2 text-sm font-medium">
                           Sr No.
                         </th>
@@ -322,10 +343,12 @@ const BillingTab: React.FC<BillingTabProps> = ({ onClose, values, onRegisterAndP
                           test: { testId: string; name: string; price: number },
                           index
                         ) => (
-                          <tr key={test.testId} className="border-b">
-                            <td className="py-2 text-sm">{index + 1}</td>
+                          <tr key={test.testId} className="border-b gap">
+                            <td className="py-2 text-sm ">{index + 1}</td>
                             <td className="py-2 text-sm">{test.name}</td>
-                            <td className="py-2 text-sm">{test.price}</td>
+                            <td className="py-2 text-sm w-20">
+                              <input className=" py-1 pl-2 border border-gray-300 w-16 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" type="number" value={test.price} onChange={(e) => handleChangeTestPrice(test.testId, e.target.value)} />
+                            </td>
                             <td className="py-2">
                               <button
                                 title="Delete"
@@ -428,7 +451,8 @@ const BillingTab: React.FC<BillingTabProps> = ({ onClose, values, onRegisterAndP
                       id="paidAmount"
                       value={billingValues.paidAmount}
                       onBlur={handleBlur}
-                      onChange={handleChange}
+                      onChange={handlePaidAmountChange}
+                      max={totals.total}
                       className="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                     />
                   </div>
