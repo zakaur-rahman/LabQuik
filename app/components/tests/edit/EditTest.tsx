@@ -9,15 +9,29 @@ import TestBasicInfo from "../TestBasicInfo";
 import TestFieldsForm from "../TestFieldsForm";
 import { FieldTableData as TestFieldsData } from "../TestFieldsForm";
 import { useFormik } from "formik";
-import { useGetTestQuery } from "@/redux/features/test/testApi";
+import {
+  useGetTestQuery,
+  useUpdateInterpretationMutation,
+  useUpdateTestMutation,
+} from "@/redux/features/test/testApi";
 import { FieldTableData, MultipleFieldsTableData, TestData } from "../types";
-import { validationSchemas, INITIAL_VALUES, INITIAL_FIELD_VALUES } from "../constants";
+import {
+  validationSchemas,
+  INITIAL_VALUES,
+  INITIAL_FIELD_VALUES,
+} from "../constants";
+import toast from "react-hot-toast";
+import { useRouter } from "next/navigation";
+import { testApi, TAG_TYPES } from "@/redux/features/test/testApi";
+import { useDispatch } from "react-redux";
 
 interface EditTestProps {
   testId: string;
 }
 
 const EditTestPage: React.FC<EditTestProps> = ({ testId }) => {
+  const router = useRouter();
+  const dispatch = useDispatch();
   const [isCommentModalOpen, setIsCommentModalOpen] = useState(false);
   const [isViewCommentModalOpen, setIsViewCommentModalOpen] = useState(false);
   const [isInterpretationModalOpen, setIsInterpretationModalOpen] =
@@ -37,7 +51,8 @@ const EditTestPage: React.FC<EditTestProps> = ({ testId }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [editTitle, setEditTitle] = useState(false);
   const [isResetModalOpen, setIsResetModalOpen] = useState(false);
-
+  const [id, setId] = useState("");
+  const [interpretation, setInterpretation] = useState("");
   // Basic info form handling
   const basicInfoForm = useFormik({
     initialValues: INITIAL_VALUES.basicInfo,
@@ -75,7 +90,6 @@ const EditTestPage: React.FC<EditTestProps> = ({ testId }) => {
     [fieldType, titleName, multipleFieldsData, isEditing, selectedRowIndex]
   );
 
-
   const { data: test, isLoading, isError } = useGetTestQuery(testId);
   useEffect(() => {
     if (test) {
@@ -90,6 +104,8 @@ const EditTestPage: React.FC<EditTestProps> = ({ testId }) => {
         suffix: test?.data?.suffix,
       });
       setTestData(test?.data?.finalData);
+      setId(test?.data?._id);
+      setInterpretation(test?.data?.interpretation);
     }
   }, [test]);
 
@@ -98,15 +114,56 @@ const EditTestPage: React.FC<EditTestProps> = ({ testId }) => {
     initialValues: INITIAL_VALUES.fieldData,
     onSubmit: handleFormSubmit,
   });
+  const [
+    updateTest,
+    {
+      isLoading: isTestLoading,
+      isSuccess: isTestSuccess,
+      isError: isTestError,
+      error: testError,
+    },
+  ] = useUpdateTestMutation();
 
   // Handle save
-  const handleSave = useCallback(() => {
-    const finalData = {
-      ...basicInfoForm.values,
-      finalData: testData,
-    };
-    console.log(finalData);
-  }, [testData]);
+  const handleUpdateTest = useCallback(async () => {
+    try {
+      const finalData = {
+        ...basicInfoForm.values,
+        finalData: testData,
+      };
+      
+      await updateTest({ 
+        id, 
+        testData: finalData 
+      });
+    } catch (error) {
+      console.error('Failed to update test:', error);
+      toast.error('Failed to update test');
+    }
+  }, [basicInfoForm.values, testData, id, updateTest]);
+
+  useEffect(() => {
+    if (isTestSuccess) {
+      toast.success("Test updated successfully");
+      fieldsForm.resetForm();
+      setTestData(testData);
+      setSelectedRowIndex(null);
+      setSelectedChildIndex(null);
+      setIsEditing(false);
+      setTitleName("");
+      setFieldType("Single field");
+      
+      // Invalidate both single test and test list cache
+      dispatch(testApi.util.invalidateTags([{ type: TAG_TYPES.Test }]));
+      
+      // Redirect to test list
+      router.push('/admin?component=TestList');
+    }
+    const errorData = testError as any;
+    if (errorData && errorData.error) {
+      toast.error(errorData.error || "Failed to update test");
+    }
+  }, [isTestSuccess, isTestError, testError, router, dispatch]);
 
   // Handle field type change
   const handleFieldTypeChange = useCallback(
@@ -372,10 +429,7 @@ const EditTestPage: React.FC<EditTestProps> = ({ testId }) => {
     // Add more comments as needed
   ]);
 
-  const handleSubmit = () => {
-    //console.log("Saving test data:", { testData, testFields, tableData });
-    // Add your save logic here
-  };
+  
 
   const handleCommentSave = (comment: string) => {
     console.log("Saving comment:", comment);
@@ -392,8 +446,26 @@ const EditTestPage: React.FC<EditTestProps> = ({ testId }) => {
     setComments(comments.filter((comment) => comment.id !== id));
   };
 
-  const handleInterpretationSave = (interpretationData: any) => {
-    console.log("Saving interpretation:", interpretationData);
+  const [
+    updateInterpretation,
+    {
+      isLoading: isInterpretationLoading,
+      isSuccess: isInterpretationSuccess,
+      isError: isInterpretationError,
+    },
+  ] = useUpdateInterpretationMutation();
+
+  useEffect(() => {
+    if (isInterpretationSuccess) {
+      toast.success("Interpretation updated successfully");
+    }
+    if (isInterpretationError) {
+      toast.error("Failed to update interpretation");
+    }
+  }, [isInterpretationSuccess, isInterpretationError]);
+
+  const handleInterpretationSave = async (interpretationData: any) => {
+    await updateInterpretation({ interpretationData, id });
     setIsInterpretationModalOpen(false);
   };
 
@@ -427,7 +499,7 @@ const EditTestPage: React.FC<EditTestProps> = ({ testId }) => {
               Add Comment
             </button>
             <button
-              onClick={handleSubmit}
+              onClick={handleUpdateTest}
               className="px-3 py-1.5 bg-blue-500 text-white rounded text-sm hover:bg-blue-600 flex items-center"
             >
               <PencilIcon className="w-4 h-4 mr-1" />
@@ -499,13 +571,14 @@ const EditTestPage: React.FC<EditTestProps> = ({ testId }) => {
       </div>
 
       <CustomModal
-        className="w-full max-w-4xl"
+        className="w-full max-w-5xl"
         open={isInterpretationModalOpen}
         setOpen={setIsInterpretationModalOpen}
         component={(props) => (
           <Interpretation
             onClose={() => setIsInterpretationModalOpen(false)}
             onSave={handleInterpretationSave}
+            interpretation={interpretation}
             {...props}
           />
         )}

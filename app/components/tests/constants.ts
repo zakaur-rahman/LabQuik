@@ -5,8 +5,8 @@ export const validationSchemas = {
     name: yup.string().required("Name is required"),
     fieldType: yup.string().required("Field type is required"),
     field: yup.string().required("Field is required"),
-    units: yup.string().required("Units is required"),
-    formula: yup.string().required("Formula is required"),
+    units: yup.string(),
+    formula: yup.string(),
     testMethod: yup.string().required("Test method is required"),
     range: yup.object({
       numeric: yup.object({
@@ -35,13 +35,13 @@ export const validationSchemas = {
     sex: yup.string().required("Sex is required"),
     sampleType: yup.string().required("Sample type is required"),
     age: yup.string().required("Age is required"),
-    suffix: yup.string().required("Suffix is required"),
+    suffix: yup.string(),
   }),
 };
 
 export const INITIAL_VALUES = {
   basicInfo: {
-    department: "",
+    department: "haematology",
     testName: "",
     cost: 0,
     testCode: "",
