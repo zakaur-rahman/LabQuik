@@ -41,8 +41,8 @@ export const testApi = apiSlice.injectEndpoints({
       providesTags: [{ type: TAG_TYPES.Test }],
     }),
     getAllTests: builder.query({
-      query: () => ({
-        url: "tests",
+      query: ({query,department,page}: { query: string, department: string, page:number }) => ({
+        url: `tests?query=${query}&department=${department}&page=${page}`,
         method: "GET",
         credentials: "include",
       }),
