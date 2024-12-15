@@ -10,8 +10,8 @@ export interface Comment {
 export interface ViewCommentProps {
   comments?: Comment[];
   onClose: () => void;
-  onEdit: (id: number, newText: string) => void;
-  onRemove: (id: number) => void;
+  onEdit: (id: string, newText: string) => void;
+  onRemove: (id: string) => void;
   isLoading?: boolean;
 }
 
@@ -24,7 +24,7 @@ const ViewComment: React.FC<ViewCommentProps> = ({
 }) => {
   const [editingId, setEditingId] = React.useState<number | null>(null);
   const [editText, setEditText] = React.useState<string>('');
-  const [deleteId, setDeleteId] = React.useState<number | null>(null);
+  const [deleteId, setDeleteId] = React.useState<string | null>(null);
 
   const handleKeyPress = (event: React.KeyboardEvent) => {
     if (event.key === 'Escape') {
@@ -37,7 +37,7 @@ const ViewComment: React.FC<ViewCommentProps> = ({
     setEditText(comment.text);
   };
 
-  const handleEditSave = (id: number) => {
+  const handleEditSave = (id: string) => {
     onEdit(id, editText);
     setEditingId(null);
     setEditText('');
@@ -82,10 +82,10 @@ const ViewComment: React.FC<ViewCommentProps> = ({
                 </tr>
               </thead>
               <tbody>
-                {comments.map((comment) => (
-                  <tr key={comment.id} className="border-b last:border-b-0">
+                {comments.map((comment:any) => (
+                  <tr key={comment._id} className="border-b last:border-b-0">
                     <td className="py-3 px-4">
-                      {editingId === comment.id ? (
+                      {editingId === comment._id ? (
                         <div className="flex gap-2">
                           <input
                             type="text"
@@ -95,7 +95,7 @@ const ViewComment: React.FC<ViewCommentProps> = ({
                             autoFocus
                           />
                           <button
-                            onClick={() => handleEditSave(comment.id)}
+                            onClick={() => handleEditSave(comment._id)}
                             className="px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600"
                           >
                             Save
@@ -108,22 +108,22 @@ const ViewComment: React.FC<ViewCommentProps> = ({
                           </button>
                         </div>
                       ) : (
-                        <span className="break-words">{comment.text}</span>
+                        <span className="break-words">{comment.comment}</span>
                       )}
                     </td>
                     <td className="py-3 px-4">
                       <div className="flex items-center gap-2">
-                        <button
+                        {/* <button
                           onClick={() => handleEditClick(comment)}
                           className="p-1 hover:bg-gray-100 rounded transition-colors"
                           aria-label={`Edit comment ${comment.id}`}
                         >
                           <Pencil className="h-4 w-4" />
-                        </button>
+                        </button> */}
                         <button
-                          onClick={() => setDeleteId(comment.id)}
+                          onClick={() => setDeleteId(comment._id)}
                           className="p-1 hover:bg-gray-100 rounded transition-colors text-red-500"
-                          aria-label={`Delete comment ${comment.id}`}
+                          aria-label={`Delete comment ${comment._id}`}
                         >
                           <Trash2 className="h-4 w-4" />
                         </button>
