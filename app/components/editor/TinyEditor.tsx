@@ -14,11 +14,11 @@ const TinyEditor: React.FC<TinyEditorProps> = ({ value, onChange }) => {
       onEditorChange={onChange}
       init={{
         height: 500,
-        menubar: true,
+        menubar: false,
         branding: false,
         statusbar: true,
         plugins: 'preview importcss searchreplace autolink autosave save directionality code visualblocks visualchars fullscreen image link media template codesample table charmap pagebreak nonbreaking anchor insertdatetime advlist lists wordcount help charmap quickbars',
-        toolbar: 'undo redo | bold italic underline strikethrough | fontfamily fontsize blocks | alignleft aligncenter alignright alignjustify | outdent indent |  numlist bullist | forecolor backcolor removeformat | print | image  template link anchor codesample | ltr rtl',
+        toolbar: 'undo redo | bold strikethrough | fontsize blocks table | alignleft aligncenter alignright alignjustify | outdent indent |  numlist bullist template link',
         toolbar_sticky: true,
         toolbar_sticky_offset: 0,
         autosave_ask_before_unload: true,
