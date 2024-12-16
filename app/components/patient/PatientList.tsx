@@ -18,6 +18,7 @@ import { useGetPatientListQuery, useDeletePatientMutation } from "@/redux/featur
 import { useSelector } from "react-redux";
 import EditPatientDetails from "./EditPatientDetails";
 import DeleteConfirmation from './DeleteConfirmation';
+import DateRangePicker from '../common/DateRangePicker';
 
 interface Patient {
   id: string;
@@ -39,6 +40,11 @@ interface Patient {
 interface PatientListProps {
   onPatientSelect: (id: string) => void;
 }
+
+const formatDate = (date: Date | null): string => {
+  if (!date) return '';
+  return date.toISOString();
+};
 
 const PatientList: React.FC<PatientListProps> = ({ onPatientSelect }) => {
   const [patients, setPatients] = useState<Patient[]>([]);
@@ -125,15 +131,28 @@ const PatientList: React.FC<PatientListProps> = ({ onPatientSelect }) => {
   const filteredPatients = React.useMemo(() => {
     return patients.filter((patient) => {
       const patientDate = new Date(patient.date);
-      const startDate = dateRange.start ? new Date(dateRange.start) : null;
-      const endDate = dateRange.end ? new Date(dateRange.end) : null;
+      // Reset time part to compare dates only
+      patientDate.setHours(0, 0, 0, 0);
+
+      if (dateRange.start && dateRange.end) {
+        const startDate = new Date(dateRange.start);
+        const endDate = new Date(dateRange.end);
+        startDate.setHours(0, 0, 0, 0);
+        endDate.setHours(0, 0, 0, 0);
+
+        // For same day selection
+        if (startDate.getTime() === endDate.getTime()) {
+          return patientDate.getTime() === startDate.getTime();
+        }
+        
+        // For date range
+        return patientDate >= startDate && patientDate <= endDate;
+      }
 
       return (
         (patient.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
           patient.id.includes(searchQuery)) &&
-        (statusFilter === "All" || patient.status === statusFilter) &&
-        (!startDate || patientDate >= startDate) &&
-        (!endDate || patientDate <= endDate)
+        (statusFilter === "All" || patient.status === statusFilter)
       );
     });
   }, [patients, searchQuery, statusFilter, dateRange]);
@@ -210,6 +229,15 @@ const PatientList: React.FC<PatientListProps> = ({ onPatientSelect }) => {
     setIsDeleteModalOpen(true);
   };
 
+  const handleDateRangeSelect = ({ startDate, endDate }: { startDate: Date | null, endDate: Date | null }) => {
+    console.log(startDate, endDate);
+    setDateRange({
+      start: formatDate(startDate),
+      end: formatDate(endDate)
+    });
+    console.log("dateRange",dateRange)
+  };
+
   if (patientsLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -226,12 +254,12 @@ const PatientList: React.FC<PatientListProps> = ({ onPatientSelect }) => {
     <main className="p-4 space-y-4 text-[#000000]">
       <h1 className="text-2xl font-bold">Patient List</h1>
 
-      <div className="flex flex-wrap gap-4 items-center justify-between">
-        <div className="relative">
+      <div className="flex flex-wrap gap-4 items-center justify-start">
+        <div className="relative w-[30%]">
           <input
             type="text"
             placeholder="Search by name or barcode"
-            className="pl-10 pr-4 py-2 border rounded-lg"
+            className="pl-10 pr-4 py-2 border w-full rounded-lg"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
@@ -250,24 +278,13 @@ const PatientList: React.FC<PatientListProps> = ({ onPatientSelect }) => {
           <option value="All">All</option>
           <option value="Completed">Completed</option>
           <option value="Ongoing">Ongoing</option>
+          <option value="Partial">Partial</option>
+          <option value="Issue">Issue</option>
+          <option value="Resolved">Resolved</option>
+          <option value="Review">Review</option>
         </select>
 
-        <input
-          type="date"
-          className="p-2 border rounded-lg"
-          value={dateRange.start}
-          onChange={(e) =>
-            setDateRange((prev) => ({ ...prev, start: e.target.value }))
-          }
-        />
-        <input
-          type="date"
-          className="p-2 border rounded-lg"
-          value={dateRange.end}
-          onChange={(e) =>
-            setDateRange((prev) => ({ ...prev, end: e.target.value }))
-          }
-        />
+        <DateRangePicker onDateSelect={handleDateRangeSelect} />
       </div>
 
       <div className="overflow-x-auto">
