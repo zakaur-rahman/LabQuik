@@ -5,7 +5,7 @@ const PatientDetailPage: React.FC = () => {
   const router = useRouter();
   const { id } = router.query;
 
-  // You would typically fetch the patient data here based on the id
+
   // For now, we'll pass a dummy patient object
   const dummyPatient = {
     name: 'John Doe',
