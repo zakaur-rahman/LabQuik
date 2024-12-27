@@ -17,14 +17,16 @@ const DoorstepSampleCollectionCharge: React.FC<Props> = ({
   onAdd,
   collections,
 }) => {
+  
   const [newCollection, setNewCollection] = useState<Omit<Collection, 'id'>>({ name: '', price: 0 });
-
   const handleAdd = () => {
     if (newCollection.name && newCollection.price > 0) {
+      
       const updatedCollections = [
         ...collections,
         { ...newCollection, id: collections.length + 1 },
       ];
+      
       onAdd(updatedCollections);
       setNewCollection({ name: '', price: 0 });
     }
@@ -42,6 +44,7 @@ const DoorstepSampleCollectionCharge: React.FC<Props> = ({
 
   return (
     <div className="bg-white text-black rounded w-full max-w-4xl mx-4">
+      
       {/* Modal Header */}
       <div className="flex justify-between items-center p-4 border-b">
         <h2 className="text-lg font-semibold">Add Home Collection</h2>
