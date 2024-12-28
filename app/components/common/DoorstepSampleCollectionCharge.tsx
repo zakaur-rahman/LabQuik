@@ -1,3 +1,5 @@
+//improvements required remove select option 
+//Just put simple price input 
 import React, { useState } from "react";
 
 interface Collection {
