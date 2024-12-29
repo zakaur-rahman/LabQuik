@@ -29,19 +29,25 @@ const TestList = () => {
   const router = useRouter();
   const [tests, setTests] = useState<Test[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
-  const [department, setDepartment] = useState<keyof typeof DEPARTMENTS>(DEPARTMENTS.ALL);
+  const [department, setDepartment] = useState<keyof typeof DEPARTMENTS>(
+    DEPARTMENTS.ALL
+  );
   const [currentPage, setCurrentPage] = useState(1);
-  
+
   const debouncedSearch = useDebounce(searchQuery, 500);
   const token = useSelector((state: any) => state.auth);
 
   const queryParams = {
     query: debouncedSearch,
-    department: department === DEPARTMENTS.ALL ? "" : (department as string).toLowerCase(),
-    page:currentPage,
+    department:
+      department === DEPARTMENTS.ALL
+        ? ""
+        : (department as string).toLowerCase(),
+    page: currentPage,
   };
 
-  const skipQuery = !token || (debouncedSearch.length > 0 && debouncedSearch.length < 3);
+  const skipQuery =
+    !token || (debouncedSearch.length > 0 && debouncedSearch.length < 3);
 
   const {
     data: testList,
@@ -50,7 +56,8 @@ const TestList = () => {
     isSuccess,
   } = useGetAllTestsQuery(queryParams, { skip: skipQuery });
 
-  const [enableTest, { isSuccess: isEnableTestSuccess }] = useEnableTestMutation();
+  const [enableTest, { isSuccess: isEnableTestSuccess }] =
+    useEnableTestMutation();
 
   const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchQuery(e.target.value);
@@ -90,7 +97,7 @@ const TestList = () => {
   const renderPaginationButtons = () => {
     const totalPages = Math.ceil(tests.length / 10);
     const buttons = [];
-    
+
     for (let i = 1; i <= totalPages; i++) {
       if (
         i === 1 ||
@@ -128,36 +135,39 @@ const TestList = () => {
   return (
     <div className="p-6 w-full text-black mx-auto space-y-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <h1 className="text-2xl font-bold">Test List</h1>
-        <div className="flex flex-wrap items-center gap-4">
-          <label htmlFor="department-select" className="sr-only">
-            Select Department
-          </label>
-          <select
-            id="department-select"
-            className="w-48 px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            value={department}
-            onChange={(e) => setDepartment(e.target.value as keyof typeof DEPARTMENTS)}
-          >
-            {Object.values(DEPARTMENTS).map((dept) => (
-              <option key={dept} value={dept}>
-                {dept}
-              </option>
-            ))}
-          </select>
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          <h1 className="text-2xl font-bold pr-4">Test List</h1>
+          <div className="flex flex-wrap items-center gap-4">
+            <label htmlFor="department-select" className="sr-only">
+              Select Department
+            </label>
+            <select
+              id="department-select"
+              className="w-32 px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              value={department}
+              onChange={(e) =>
+                setDepartment(e.target.value as keyof typeof DEPARTMENTS)
+              }
+            >
+              {Object.values(DEPARTMENTS).map((dept) => (
+                <option key={dept} value={dept}>
+                  {dept}
+                </option>
+              ))}
+            </select>
 
-          <div className="relative">
-            <input
-              type="text"
-              placeholder="Search by test name or test code"
-              className="w-64 pl-10 pr-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              value={searchQuery}
-              onChange={handleSearch}
-            />
-            <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
+            <div className="relative">
+              <input
+                type="text"
+                placeholder="Search by test name or test code"
+                className="w-80 pl-10 pr-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                value={searchQuery}
+                onChange={handleSearch}
+              />
+              <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
+            </div>
           </div>
         </div>
-
         <div className="flex gap-2 flex-wrap">
           <button className="flex items-center px-3 py-2 text-sm bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors">
             <RefreshCw className="h-4 w-4 mr-2" />
@@ -177,17 +187,32 @@ const TestList = () => {
         <table className="w-full">
           <thead>
             <tr className="bg-gray-50">
-              <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">Tests</th>
-              <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">Test Code</th>
-              <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">Department</th>
-              <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">Sample Type</th>
-              <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">Cost</th>
-              <th className="px-4 py-3 text-right text-sm font-medium text-gray-600">Action</th>
+              <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">
+                Tests
+              </th>
+              <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">
+                Test Code
+              </th>
+              <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">
+                Department
+              </th>
+              <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">
+                Sample Type
+              </th>
+              <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">
+                Cost
+              </th>
+              <th className="px-4 py-3 text-right text-sm font-medium text-gray-600">
+                Action
+              </th>
             </tr>
           </thead>
           <tbody>
             {tests.map((test) => (
-              <tr key={test._id} className="border-t hover:bg-gray-50 transition-colors">
+              <tr
+                key={test._id}
+                className="border-t hover:bg-gray-50 transition-colors"
+              >
                 <td className="px-4 py-3 text-sm">{test.testName}</td>
                 <td className="px-4 py-3 text-sm">{test.testCode}</td>
                 <td className="px-4 py-3 text-sm">{test.department}</td>
