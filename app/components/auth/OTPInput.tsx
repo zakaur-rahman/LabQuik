@@ -48,7 +48,7 @@ export const OTPInput: React.FC<OTPInputProps> = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [error, isSuccess]);
 
-  
+  //Handle otp input
   const handleChange = (index: number, value: string) => {
     setInvalidError(false);
     const sanitizedValue = value.replace(/[^0-9]/g, "");
