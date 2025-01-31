@@ -12,7 +12,6 @@ interface TypographyProps extends React.HTMLAttributes<HTMLParagraphElement> {
     | 'h3'
     | 'h4'
     | 'h5'
-    | 'h6'
     | 'body1'
     | 'body2'
     | 'subtitle1'
@@ -52,11 +51,6 @@ const StyledTypography = styled.p<TypographyProps>`
         return `
         font-size: 30px; 
         line-height: 38px;
-        `;
-      case 'h6':
-        return `
-        font-size: 24px; 
-        line-height: 32px;
         `;
       case 'subtitle1':
         return `
